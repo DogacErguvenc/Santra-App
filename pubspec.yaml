@@ -1,0 +1,46 @@
+name: halisaharakip_app
+description: "A new Flutter project."
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  # DÜZELTME: SDK versiyon aralığını daha standart hale getirdik.
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  # DÜZELTME: Tüm hizalamalar (boşluklar) 2 karakter standardına göre düzeltildi.
+  # ve paketler en güncel hallerine getirildi.
+  flutter:
+    sdk: flutter
+
+  # Firebase Paketleri
+  firebase_core: ^3.1.0
+  firebase_auth: ^5.1.0
+  cloud_firestore: ^5.0.0
+  firebase_messaging: ^15.2.9
+  firebase_storage: ^12.1.0
+
+  # Diğer Paketler
+  intl: ^0.19.0 # Tarih formatlama için
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  image_picker: ^1.1.2
+  cached_network_image: ^3.3.1
+  url_launcher: ^6.3.1
+  cloud_functions: ^5.6.1
+  device_info_plus: ^11.5.0
+  firebase_app_check: ^0.3.2+10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
