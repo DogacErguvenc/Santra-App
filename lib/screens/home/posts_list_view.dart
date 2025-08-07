@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:halisaharakip_app/screens/home/post_detail_screen.dart';
+import 'package:halisaharakip_app/screens/home/team_profile_screen.dart';
 import 'package:intl/intl.dart';
 
 class PostsListView extends StatefulWidget {
@@ -246,22 +247,60 @@ class _PostsListViewState extends State<PostsListView> {
                     margin:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: logoURL != null
-                            ? CachedNetworkImageProvider(logoURL)
-                            : null,
-                        child: logoURL == null
-                            ? const Icon(Icons.shield_outlined,
-                                color: Colors.grey)
-                            : null,
+                      leading: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TeamProfileScreen(
+                                teamId: post['teamId'] ?? '',
+                                teamName: post['teamName'] ?? 'İsimsiz Takım',
+                              ),
+                            ),
+                          );
+                        },
+                        child: CircleAvatar(
+                          backgroundImage: logoURL != null
+                              ? CachedNetworkImageProvider(logoURL)
+                              : null,
+                          child: logoURL == null
+                              ? const Icon(Icons.shield_outlined,
+                                  color: Colors.grey)
+                              : null,
+                        ),
                       ),
                       title: Text(
                         post['pitchName'] ?? 'Saha Adı Belirtilmemiş',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      subtitle: Text(
-                          '${post['teamName'] ?? 'İsimsiz Takım'}\n$formattedDate'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TeamProfileScreen(
+                                    teamId: post['teamId'] ?? '',
+                                    teamName:
+                                        post['teamName'] ?? 'İsimsiz Takım',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              post['teamName'] ?? 'İsimsiz Takım',
+                              style: const TextStyle(
+                                color: Colors.tealAccent,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Text(formattedDate),
+                        ],
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(

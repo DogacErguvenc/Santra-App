@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
+import 'package:halisaharakip_app/screens/home/team_profile_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -205,10 +205,28 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   color: Colors.grey[800],
                   margin: const EdgeInsets.symmetric(vertical: 5),
                   child: ListTile(
-                    title: Text(
+                    title: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TeamProfileScreen(
+                              teamId: challengeData['challengerTeamId'] ?? '',
+                              teamName: challengeData['challengerTeamName'] ??
+                                  'İsimsiz Takım',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
                         challengeData['challengerTeamName'] ?? 'İsimsiz Takım',
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('Durum: ${challengeData['status']}'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.tealAccent,
+                        ),
+                      ),
+                    ),
+                    subtitle: Text('Durum:  [39m${challengeData['status']}'),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       IconButton(
                           icon: const Icon(Icons.check,

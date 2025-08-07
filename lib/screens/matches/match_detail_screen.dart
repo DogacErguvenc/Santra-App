@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
+import 'package:halisaharakip_app/screens/home/team_profile_screen.dart';
 import 'package:intl/intl.dart'; // DÜZELTME: 'package.' yerine 'package:' kullanıldı.
-import 'package:url_launcher/url_launcher.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   final String matchId;
@@ -341,21 +341,59 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 Expanded(
-                                    child: Text(homeTeamName,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold))),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TeamProfileScreen(
+                                            teamId:
+                                                matchData['homeTeamId'] ?? '',
+                                            teamName: homeTeamName,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      homeTeamName,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.tealAccent),
+                                    ),
+                                  ),
+                                ),
                                 Text('$homeScore : $awayScore',
                                     style: const TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold)),
                                 Expanded(
-                                    child: Text(awayTeamName,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold))),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TeamProfileScreen(
+                                            teamId:
+                                                matchData['awayTeamId'] ?? '',
+                                            teamName: awayTeamName,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      awayTeamName,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.tealAccent),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ],

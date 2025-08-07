@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:halisaharakip_app/screens/home/team_profile_screen.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
@@ -63,6 +64,17 @@ class LeaderboardScreen extends StatelessWidget {
                   subtitle:
                       Text('Puan: $points  (G: $wins B: $draws M: $losses)'),
                   trailing: const Icon(Icons.bar_chart),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TeamProfileScreen(
+                          teamId: teams[index].id,
+                          teamName: team['teamName'] ?? 'İsimsiz Takım',
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },
