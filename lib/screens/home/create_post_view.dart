@@ -329,12 +329,15 @@ class _CreatePostViewState extends State<CreatePostView> {
             const SizedBox(height: 20),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: _createPost,
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50)),
-                    child: const Text('İlanı Yayınla',
-                        style: TextStyle(fontSize: 16)),
+                : SafeArea(
+                    minimum: const EdgeInsets.only(bottom: 8),
+                    child: ElevatedButton(
+                      onPressed: _createPost,
+                      style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50)),
+                      child: const Text('İlanı Yayınla',
+                          style: TextStyle(fontSize: 16)),
+                    ),
                   ),
           ],
         ),
