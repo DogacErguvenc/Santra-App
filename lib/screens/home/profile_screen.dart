@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:halisaharakip_app/auth_gate.dart';
 import 'package:halisaharakip_app/screens/admin/admin_user_list_screen.dart';
 import 'package:halisaharakip_app/screens/legal/legal_document_screen.dart';
 import 'package:halisaharakip_app/screens/profile/edit_profile_screen.dart';
@@ -28,21 +29,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // initState'te artık async işlem yapmıyoruz, doğrudan _checkAdminStatus çağırıyoruz.
     _checkAdminStatus();
   }
 
+  // --- YENİ LOGOUT FONKSİYONU ---
+  // Kod tekrarını önlemek için çıkış yapma mantığını bir fonksiyona taşıdık.
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      // pushAndRemoveUntil ile tüm geçmiş ekranları temizleyip giriş ekranına dönüyoruz.
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+        (route) => false,
+      );
+    }
+  }
+
+  // --- GÜNCELLENEN FONKSİYON ---
+  // Artık hatayı yakalayıp kullanıcıyı çıkışa yönlendiriyor.
   Future<void> _checkAdminStatus() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final idTokenResult = await user.getIdTokenResult(true);
+    if (user == null) return;
+
+    try {
+      final idTokenResult =
+          await user.getIdTokenResult(true); // Token'ı yenilemeye zorla
       if (mounted) {
         setState(() {
           _isAdmin = idTokenResult.claims?['admin'] == true;
         });
       }
+    } on FirebaseAuthException catch (e) {
+      // E-posta değişikliği gibi durumlarda token geçersiz hale gelir.
+      // Bu hatayı yakaladığımızda kullanıcıyı bilgilendirip çıkış yaptırıyoruz.
+      if (e.code == 'user-token-expired' ||
+          e.message!.contains('credential is no longer valid')) {
+        if (mounted) {
+          showSnackBar(context,
+              'Kimlik bilgileriniz değiştiği için yeniden giriş yapmanız gerekiyor.');
+          // Kısa bir gecikmeyle logout fonksiyonunu çağırıyoruz ki kullanıcı mesajı görebilsin.
+          Future.delayed(const Duration(seconds: 2), () => _logout());
+        }
+      }
     }
   }
 
+  // ... Diğer fonksiyonlar (_pickAndUploadImage, _sendPasswordResetEmail, vb.) değişmeden kalıyor ...
   Future<void> _pickAndUploadImage() async {
     if (_isUploading) return;
     final imagePicker = ImagePicker();
@@ -222,12 +255,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // --- BUILD METODU GÜNCELLENDİ ---
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return const Center(child: Text('Lütfen giriş yapın.'));
+      // Bu durum _checkAdminStatus'teki logout sonrası oluşabilir.
+      // AuthGate'e yönlendirme zaten yapıldığı için burada basit bir bekleme göstergesi yeterli.
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
@@ -245,24 +279,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final userData = snapshot.data!.data() as Map<String, dynamic>;
         final photoURL = userData['photoURL'];
 
-        // YENİ: Kaydırma için SingleChildScrollView eklendi
         return SingleChildScrollView(
           child: Padding(
-            // YENİ: Simetriyi artırmak ve yüksekliği daha iyi yönetmek için ConstrainedBox eklendi
             padding:
                 const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                // Ekran yüksekliğinden padding'leri ve AppBar yüksekliğini çıkararak minimum yükseklik veriyoruz
                 minHeight:
                     MediaQuery.of(context).size.height - kToolbarHeight - 40,
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment
-                    .spaceBetween, // YENİ: İçeriği dikeyde yaymak için
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
-                    // Üst kısım için bir Column
                     children: [
                       const SizedBox(height: 20),
                       GestureDetector(
@@ -289,7 +318,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      // En güncel e-postayı Auth'tan alıyoruz.
                       Text(currentUser.email ?? 'E-posta Yok',
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[400])),
@@ -410,12 +438,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-
-                  // YENİ: Çıkış yap butonu artık ana Column'un bir parçası
                   Padding(
                     padding: const EdgeInsets.only(top: 20.0, bottom: 10.0),
                     child: TextButton.icon(
-                      onPressed: () => FirebaseAuth.instance.signOut(),
+                      // YENİ: Artık merkezi _logout fonksiyonunu çağırıyoruz
+                      onPressed: _logout,
                       icon: Icon(Icons.logout, color: Colors.red[700]),
                       label: Text('Çıkış Yap',
                           style:
