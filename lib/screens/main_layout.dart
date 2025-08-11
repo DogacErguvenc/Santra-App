@@ -128,15 +128,16 @@ class _MainLayoutState extends State<MainLayout> {
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
           ),
-          floatingActionButton: (_selectedIndex == 0 && canPost)
-              ? FloatingActionButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const CreatePostView()));
-                  },
-                  child: const Icon(Icons.add),
-                )
-              : null,
+          floatingActionButton:
+              ((_selectedIndex == 0 || _selectedIndex == 2) && canPost)
+                  ? FloatingActionButton(
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const CreatePostView()));
+                      },
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
         );
       },
     );
