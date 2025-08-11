@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:halisaharakip_app/screens/auth/email_verification_screen.dart';
 import 'package:halisaharakip_app/screens/legal/legal_document_screen.dart';
+import 'package:halisaharakip_app/services/email_verification_service.dart';
 import 'package:halisaharakip_app/utils/legal_texts.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -102,7 +104,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'teamId': null,
         'deviceId': deviceId,
         'isBanned': false,
+        'emailVerified': false,
+        'emailVerificationSentAt': null,
+        'emailVerificationCompletedAt': null,
       });
+
+      // E-posta doğrulama sürecini başlat
+      await EmailVerificationService.startEmailVerificationProcess();
+
+      // E-posta doğrulama ekranına yönlendir
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const EmailVerificationScreen(),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted)
         showSnackBar(context, e.message ?? 'Bilinmeyen bir hata oluştu.',

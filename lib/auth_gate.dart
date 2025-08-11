@@ -2,7 +2,8 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:halisaharakip_app/auth_page.dart'; // GÜNCELLEME
+import 'package:halisaharakip_app/auth_page.dart';
+import 'package:halisaharakip_app/screens/auth/email_verification_screen.dart';
 import 'package:halisaharakip_app/screens/main_layout.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
 
@@ -36,9 +37,13 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         if (snapshot.hasData) {
+          final user = snapshot.data!;
+          // E-posta doğrulaması kontrolü
+          if (!user.emailVerified) {
+            return const EmailVerificationScreen();
+          }
           return const MainLayout();
         } else {
-          // GÜNCELLEME: Artık LoginScreen yerine AuthPage'i gösteriyoruz.
           return const AuthPage();
         }
       },

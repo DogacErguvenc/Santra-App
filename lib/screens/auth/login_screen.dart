@@ -3,6 +3,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:halisaharakip_app/services/email_verification_service.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,10 +28,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      // E-posta doğrulaması kontrolü
+      if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        if (mounted) {
+          showSnackBar(context,
+              'Lütfen e-posta adresinizi doğrulayın. Doğrulama e-postası gönderildi.',
+              isError: true);
+          // Kullanıcıyı çıkış yaptır
+          await FirebaseAuth.instance.signOut();
+        }
+      } else if (userCredential.user != null &&
+          userCredential.user!.emailVerified) {
+        // E-posta doğrulanmışsa Firestore'u güncelle
+        await EmailVerificationService.onEmailVerificationComplete();
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         showSnackBar(context, e.message ?? 'Bilinmeyen bir hata oluştu.',
