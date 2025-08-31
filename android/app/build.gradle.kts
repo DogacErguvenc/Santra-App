@@ -36,7 +36,7 @@ android {
         applicationId = "com.hdesoftware.santra"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -53,8 +53,17 @@ android {
 
     buildTypes {
         release {
-            // ... mevcut satırlar ...
-            signingConfig = signingConfigs.getByName("release") // BU SATIRI EKLE VEYA GÜNCELLE
+            // Bu satır, yayın modunda kodun küçültülmesini (minify) ve
+            // gereksiz kodların ayıklanmasını (shrink) sağlar. Bu, uygulamanın
+            // boyutunu küçültür ve performansını artırır.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            // Bizim eklediğimiz en önemli satır:
+            // Bu, 'release' build'inin, bizim oluşturduğumuz imza anahtarıyla
+            // imzalanmasını sağlar.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
