@@ -22,7 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
 
   bool _isLoading = false;
   bool _agreedToTerms = false;
@@ -32,7 +33,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -59,6 +61,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_agreedToTerms) {
       showSnackBar(context,
           'Devam etmek için Kullanım Koşullarını ve Gizlilik Politikasını kabul etmelisiniz.',
+          isError: true);
+      return;
+    }
+    if (_firstNameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty) {
+      showSnackBar(context, 'Lütfen ad ve soyad alanlarını doldurunuz.',
           isError: true);
       return;
     }
@@ -93,11 +101,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text.trim(),
       );
 
+      final fullName =
+          '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim();
+
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
           .set({
-        'fullName': _fullNameController.text.trim(),
+        'fullName': fullName,
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
         'createdAt': Timestamp.now(),
         'role': 'Oyuncu',
@@ -147,19 +160,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 10),
                 const Text('Hesap Oluştur', style: TextStyle(fontSize: 20)),
                 const SizedBox(height: 50),
-                TextField(
-                  controller: _fullNameController,
-                  decoration: InputDecoration(
-                    enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white),
-                        borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.deepPurple),
-                        borderRadius: BorderRadius.circular(12)),
-                    hintText: 'Ad Soyad',
-                    fillColor: Colors.grey[800],
-                    filled: true,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _firstNameController,
+                        decoration: InputDecoration(
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.white),
+                              borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.deepPurple),
+                              borderRadius: BorderRadius.circular(12)),
+                          hintText: 'Ad',
+                          fillColor: Colors.grey[800],
+                          filled: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _lastNameController,
+                        decoration: InputDecoration(
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.white),
+                              borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.deepPurple),
+                              borderRadius: BorderRadius.circular(12)),
+                          hintText: 'Soyad',
+                          fillColor: Colors.grey[800],
+                          filled: true,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 TextField(

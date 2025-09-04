@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:halisaharakip_app/services/email_verification_service.dart';
+import 'package:halisaharakip_app/screens/main_layout.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -78,7 +79,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
         if (mounted) {
           showSnackBar(context, 'E-posta doğrulandı!', isError: false);
-          Navigator.of(context).pop(); // Ana sayfaya yönlendir
+          // Sayaç ve timer'ı güvenli şekilde durdur
+          _timer?.cancel();
+          _timer = null;
+          // Ana layout'a yönlendir ve geri dönüş stack'ini temizle
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainLayout()),
+            (route) => false,
+          );
         }
       } else {
         if (mounted) {

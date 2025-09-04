@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:halisaharakip_app/screens/leaderboard/leaderboard_screen.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -437,6 +437,18 @@ class _TeamScreenState extends State<TeamScreen> {
               const SizedBox(height: 16),
               _buildStatsCard(teamData),
               const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LeaderboardScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.leaderboard),
+                label: const Text('Sıralamayı Gör'),
+              ),
+              const SizedBox(height: 16),
               Card(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 shape: RoundedRectangleBorder(

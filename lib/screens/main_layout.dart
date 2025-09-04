@@ -6,12 +6,13 @@ import 'package:halisaharakip_app/screens/home/create_team_view.dart';
 import 'package:halisaharakip_app/screens/home/posts_list_view.dart';
 import 'package:halisaharakip_app/screens/home/profile_screen.dart';
 import 'package:halisaharakip_app/screens/home/team_screen.dart';
-import 'package:halisaharakip_app/screens/leaderboard/leaderboard_screen.dart';
 import 'package:halisaharakip_app/screens/matches/my_matches_screen.dart';
 import 'package:halisaharakip_app/screens/profile/my_posts_screen.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final int initialIndex;
+
+  const MainLayout({super.key, this.initialIndex = 0});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -19,6 +20,12 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -58,7 +65,6 @@ class _MainLayoutState extends State<MainLayout> {
 
         final List<Widget> screens = [
           const PostsListView(),
-          const LeaderboardScreen(),
           // DÜZELTME: MyPostsScreen artık parametre almıyor.
           userTeamId != null
               ? const MyPostsScreen()
@@ -79,7 +85,6 @@ class _MainLayoutState extends State<MainLayout> {
 
         final List<String> appBarTitles = [
           'Santra', // Ana sayfa başlığı
-          'Sıralama',
           'Aktif İlanlarım',
           'Maçlarım',
           'Takımım',
@@ -104,10 +109,6 @@ class _MainLayoutState extends State<MainLayout> {
                   icon: Icon(Icons.home_outlined),
                   activeIcon: Icon(Icons.home),
                   label: 'Ana Sayfa'),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.leaderboard_outlined),
-                  activeIcon: Icon(Icons.leaderboard),
-                  label: 'Sıralama'),
               BottomNavigationBarItem(
                   icon: Icon(Icons.article_outlined),
                   activeIcon: Icon(Icons.article),
