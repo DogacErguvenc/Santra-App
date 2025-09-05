@@ -490,6 +490,94 @@ exports.calculateTeamPoints = onDocumentUpdated(
   }
 );
 
+// Kullanıcı oluşturma
+exports.createUser = onCall(async (request) => {
+  const userId = request.auth.uid;
+  if (!userId) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Bu işlemi yapmak için giriş yapmalısınız."
+    );
+  }
+
+  const { fullName, firstName, lastName, email, deviceId } = request.data;
+
+  if (!fullName || !firstName || !lastName || !email) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Gerekli alanlar eksik."
+    );
+  }
+
+  try {
+    const firestore = getFirestore();
+
+    // Firestore'da kullanıcı dokümanını oluştur
+    await firestore.collection("users").doc(userId).set({
+      uid: userId,
+      displayName: fullName,
+      email: email,
+      createdAt: new Date(),
+      isBanned: false,
+      motmAwards: 0,
+      // Ek alanlar
+      fullName: fullName,
+      fullName_lowercase: fullName.toLowerCase(),
+      isSearchable: true,
+      firstName: firstName,
+      lastName: lastName,
+      role: 'Oyuncu',
+      teamId: null,
+      deviceId: deviceId,
+      emailVerified: false,
+      emailVerificationSentAt: null,
+      emailVerificationCompletedAt: null,
+    });
+
+    return {
+      success: true,
+      message: "Kullanıcı başarıyla oluşturuldu.",
+    };
+  } catch (error) {
+    console.error("Kullanıcı oluşturulurken hata oluştu:", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "İşlem sırasında bir sunucu hatası oluştu."
+    );
+  }
+});
+
+// E-posta gönderme tarihini güncelle
+exports.updateEmailVerificationSentAt = onCall(async (request) => {
+  const userId = request.auth.uid;
+  if (!userId) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Bu işlemi yapmak için giriş yapmalısınız."
+    );
+  }
+
+  try {
+    const firestore = getFirestore();
+
+    // Firestore'da e-posta gönderme tarihini güncelle
+    await firestore.collection("users").doc(userId).update({
+      emailVerificationSentAt: new Date(),
+    });
+
+    return {
+      success: true,
+      message: "E-posta gönderme tarihi kaydedildi.",
+    };
+  } catch (error) {
+    console.error("E-posta gönderme tarihi güncellenirken hata oluştu:", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "İşlem sırasında bir sunucu hatası oluştu."
+    );
+  }
+});
+
 // E-posta doğrulama durumunu Firestore'da güncelle
 exports.updateEmailVerificationStatus = onCall(async (request) => {
   const userId = request.auth.uid;
@@ -505,10 +593,17 @@ exports.updateEmailVerificationStatus = onCall(async (request) => {
     const firestore = getFirestore();
 
     // Firestore'da kullanıcı dokümanını güncelle
-    await firestore.collection("users").doc(userId).update({
+    const updateData = {
       emailVerified: user.emailVerified,
       emailVerificationUpdatedAt: new Date(),
-    });
+    };
+
+    // E-posta doğrulandıysa tamamlanma tarihini ekle
+    if (user.emailVerified) {
+      updateData.emailVerificationCompletedAt = new Date();
+    }
+
+    await firestore.collection("users").doc(userId).update(updateData);
 
     return {
       success: true,

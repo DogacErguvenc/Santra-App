@@ -57,6 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'lastName': lastName,
           'fullName': fullName,
           'fullName_lowercase': fullName.toLowerCase(),
+          'displayName': fullName, // displayName alanını da güncelle
           'isSearchable': _isSearchable,
           'isTeamSearchable': _isTeamSearchable,
         });

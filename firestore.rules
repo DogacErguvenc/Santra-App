@@ -1,60 +1,178 @@
+// Firestore Security Rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null; // Allow reading other users for search
+
+    // ------------ Helpers ------------
+    function signedIn() { return request.auth != null; }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
     }
-    
-    // Teams collection
+
+    function isCaptainOfTeam(teamId) {
+      return signedIn()
+        && teamId is string
+        && get(/databases/$(database)/documents/teams/$(teamId)).data.captainId == request.auth.uid;
+    }
+
+    function hasPendingInvite(uid, teamId) {
+      return exists(/databases/$(database)/documents/users/$(uid)/teamInvites/$(teamId))
+        && get(/databases/$(database)/documents/users/$(uid)/teamInvites/$(teamId)).data.status == 'pending';
+    }
+
+    // ------------ USERS ------------
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      // CREATE (initial)
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['uid','displayName','email','createdAt','isBanned','motmAwards'])
+        && request.resource.data.isBanned == false
+        && request.resource.data.motmAwards == 0
+        && request.resource.data.uid == request.auth.uid;
+
+      // UPDATE (basic profile fields + fcmTokens, deviceId)
+      // - Sadece şu alanlar değişebilir: displayName, photoURL, fcmTokens, deviceId, firstName, lastName, fullName, fullName_lowercase, isSearchable, isTeamSearchable
+      // - Diğer kritik alanlar gönderildiyse mevcut değerle aynı olmalı (merge güncellemeleri kırılmasın)
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['displayName','photoURL','fcmTokens','deviceId','firstName','lastName','fullName','fullName_lowercase','isSearchable','isTeamSearchable'])
+        && (
+          !request.resource.data.keys().hasAny(['uid']) ||
+          request.resource.data.uid == resource.data.uid
+        )
+        && (
+          !request.resource.data.keys().hasAny(['email']) ||
+          request.resource.data.email == resource.data.email
+        )
+        && (
+          !request.resource.data.keys().hasAny(['isBanned']) ||
+          request.resource.data.isBanned == resource.data.isBanned
+        )
+        && (
+          !request.resource.data.keys().hasAny(['motmAwards']) ||
+          request.resource.data.motmAwards == resource.data.motmAwards
+        )
+        && (
+          !request.resource.data.keys().hasAny(['teamId']) ||
+          request.resource.data.teamId == resource.data.teamId
+        );
+
+      // UPDATE (invite accept: user joins a team)
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.teamId == null
+        && request.resource.data.teamId is string
+        && hasPendingInvite(uid, request.resource.data.teamId)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
+        && (
+          !request.resource.data.keys().hasAny(['role']) ||
+          request.resource.data.role == 'Oyuncu'
+        );
+
+      // UPDATE (captain removes a player from own team)
+      allow update: if signedIn()
+        && resource.data.teamId is string
+        && isCaptainOfTeam(resource.data.teamId)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
+        && request.resource.data.teamId == null
+        && (
+          !request.resource.data.keys().hasAny(['role']) ||
+          request.resource.data.role == 'Oyuncu'
+        );
+    }
+
+    // ------------ TEAM INVITES (users/{uid}/teamInvites/{teamId}) ------------
+    match /users/{uid}/teamInvites/{teamId} {
+      allow get, list: if signedIn() && request.auth.uid == uid;
+
+      // first invite (create) by captain
+      allow create: if signedIn()
+        && isCaptainOfTeam(teamId)
+        && request.resource.data.teamId == teamId
+        && request.resource.data.captainId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      // re-invite to pending (simplified)
+      allow update: if signedIn()
+        && isCaptainOfTeam(teamId)
+        && resource.data.captainId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'pending';
+
+      // invited user accepts/declines
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        && (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined');
+
+      allow delete: if false;
+    }
+
+    // ------------ TEAMS ------------
     match /teams/{teamId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        (request.auth.uid == resource.data.captainId || 
-         request.auth.uid == request.resource.data.captainId);
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if isCaptainOfTeam(resource.data.teamId) || isAdmin();
+      allow delete: if isAdmin();
     }
-    
-    // Posts collection (match posts)
+
+    // ------------ POSTS (Team Match Posts) ------------
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.captainId;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.captainId;
+      allow read: if signedIn();
+      allow create: if isCaptainOfTeam(request.resource.data.teamId);
+      allow update: if resource.data.captainId == request.auth.uid || isAdmin();
+      allow delete: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid || isAdmin();
+
+      match /challenges/{challengeId} {
+        allow read: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
+                     || resource.data.requesterId == request.auth.uid;
+        allow create: if isCaptainOfTeam(request.resource.data.challengerTeamId)
+                      && get(/databases/$(database)/documents/posts/$(postId)).data.captainId != request.auth.uid;
+        allow update: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
+                      || resource.data.requesterId == request.auth.uid;
+        allow delete: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
+                      || resource.data.requesterId == request.auth.uid;
+      }
     }
-    
-    // Player posts collection (new)
+
+    // ------------ PLAYER POSTS (Player Looking for Team Posts) ------------
     match /player_posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.playerId;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.playerId;
+      allow read: if signedIn();
+      allow create: if signedIn() 
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.keys().hasAll(['playerId', 'playerName', 'position', 'experience', 'district', 'gameLevel', 'status', 'createdAt', 'contactInfo'])
+        && request.resource.data.status == 'Aktif';
+      allow update: if resource.data.playerId == request.auth.uid || isAdmin();
+      allow delete: if resource.data.playerId == request.auth.uid || isAdmin();
     }
-    
-    // Team invites collection (new)
-    match /team_invites/{inviteId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.playerId || 
-         request.auth.uid == resource.data.captainId);
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.captainId;
-      allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.playerId || 
-         request.auth.uid == resource.data.captainId);
-    }
-    
-    // Matches collection
+
+    // ------------ MATCHES ------------
     match /matches/{matchId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if false; // only via Functions
     }
-    
-    // Challenges subcollection
-    match /posts/{postId}/challenges/{challengeId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+
+    // ------------ TEAM INVITES (Global Collection) ------------
+    match /team_invites/{inviteId} {
+      allow read: if signedIn() && (
+        resource.data.playerId == request.auth.uid ||
+        resource.data.captainId == request.auth.uid
+      );
+      allow create: if signedIn() && request.resource.data.captainId == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.playerId == request.auth.uid ||
+        resource.data.captainId == request.auth.uid
+      );
+      allow delete: if false;
+    }
+
+    // ------------ Banned Devices ------------
+    match /bannedDevices/{deviceId} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

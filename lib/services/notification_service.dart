@@ -30,15 +30,27 @@ class NotificationService {
   Future<void> _saveTokenToDatabase(String token) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .set(
-        {
-          'fcmTokens': FieldValue.arrayUnion([token]),
-        },
-        SetOptions(merge: true),
-      );
+      try {
+        // Önce kullanıcı dokümanının var olup olmadığını kontrol et
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+        
+        if (userDoc.exists) {
+          // Kullanıcı dokümanı varsa fcmTokens alanını güncelle
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .update({
+            'fcmTokens': FieldValue.arrayUnion([token]),
+          });
+        } else {
+          print('Kullanıcı dokümanı henüz oluşturulmamış, FCM token kaydedilemedi');
+        }
+      } catch (e) {
+        print('FCM token kaydedilemedi: $e');
+      }
     }
   }
 

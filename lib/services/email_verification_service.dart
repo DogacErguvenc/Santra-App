@@ -49,15 +49,11 @@ class EmailVerificationService {
     }
   }
 
-  // Manuel Firestore güncelleme (fallback)
+  // Manuel Firestore güncelleme (fallback) - Artık kullanılmıyor
   static Future<void> _updateEmailVerificationManually() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).update({
-        'emailVerified': user.emailVerified,
-        'emailVerificationUpdatedAt': FieldValue.serverTimestamp(),
-      });
-    }
+    // Bu fonksiyon artık kullanılmıyor çünkü doğrudan Firestore güncellemesi
+    // permission hatasına neden oluyor. Cloud Function kullanılıyor.
+    print('Manuel güncelleme artık desteklenmiyor. Cloud Function kullanın.');
   }
 
   // Kullanıcının e-posta doğrulama durumunu Firestore'dan kontrol et
@@ -78,12 +74,13 @@ class EmailVerificationService {
     if (user != null && !user.emailVerified) {
       // E-posta gönder
       await sendVerificationEmail();
-
-      // Firestore'da durumu güncelle
-      await _firestore.collection('users').doc(user.uid).update({
-        'emailVerificationSentAt': FieldValue.serverTimestamp(),
-        'emailVerified': false,
-      });
+      
+      // E-posta gönderme tarihini kaydet
+      try {
+        await _functions.httpsCallable('updateEmailVerificationSentAt').call();
+      } catch (e) {
+        print('E-posta gönderme tarihi kaydedilemedi: $e');
+      }
     }
   }
 
@@ -91,11 +88,13 @@ class EmailVerificationService {
   static Future<void> onEmailVerificationComplete() async {
     final user = _auth.currentUser;
     if (user != null && user.emailVerified) {
-      // Firestore'u güncelle
-      await _firestore.collection('users').doc(user.uid).update({
-        'emailVerified': true,
-        'emailVerificationCompletedAt': FieldValue.serverTimestamp(),
-      });
+      // Cloud Function kullanarak güvenli güncelleme yap
+      try {
+        await _functions.httpsCallable('updateEmailVerificationStatus').call();
+      } catch (e) {
+        print('E-posta doğrulama durumu güncellenemedi: $e');
+        // Hata olsa bile devam et, çünkü Firebase Auth'da doğrulama tamamlandı
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ import 'package:halisaharakip_app/auth_page.dart';
 import 'package:halisaharakip_app/screens/auth/email_verification_screen.dart';
 import 'package:halisaharakip_app/screens/main_layout.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
+import 'package:halisaharakip_app/services/email_verification_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -42,8 +43,11 @@ class _AuthGateState extends State<AuthGate> {
           // e-posta doğrulama durumu değiştiğinde otomatik güncellenecek
           if (!user.emailVerified) {
             return const EmailVerificationScreen();
+          } else {
+            // E-posta doğrulanmışsa Firestore'u güncelle
+            EmailVerificationService.onEmailVerificationComplete();
+            return const MainLayout();
           }
-          return const MainLayout();
         } else {
           return const AuthPage();
         }
