@@ -29,7 +29,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: FirebaseAuth.instance.userChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -38,7 +38,8 @@ class _AuthGateState extends State<AuthGate> {
 
         if (snapshot.hasData) {
           final user = snapshot.data!;
-          // E-posta doğrulaması kontrolü
+          // E-posta doğrulaması kontrolü - userChanges() kullandığımız için
+          // e-posta doğrulama durumu değiştiğinde otomatik güncellenecek
           if (!user.emailVerified) {
             return const EmailVerificationScreen();
           }

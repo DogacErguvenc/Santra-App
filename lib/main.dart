@@ -8,6 +8,8 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'auth_gate.dart';
 import 'firebase_options.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
+import 'package:halisaharakip_app/screens/profile/player_profile_screen.dart';
+import 'package:halisaharakip_app/screens/profile/player_search_screen.dart';
 
 void main() async {
   // Flutter binding'lerinin hazır olduğundan emin oluyoruz
@@ -81,6 +83,25 @@ class MyApp extends StatelessWidget {
       title: 'Santra',
       theme: darkTheme,
       home: const AuthGate(),
+      onGenerateRoute: (RouteSettings settings) {
+        final uri = Uri.parse(settings.name ?? '');
+        // /player/:uid
+        if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'player') {
+          final uid = uri.pathSegments[1];
+          return MaterialPageRoute(
+            builder: (_) => PlayerProfileScreen(playerId: uid),
+            settings: settings,
+          );
+        }
+        // /search/players
+        if (uri.path == '/search/players') {
+          return MaterialPageRoute(
+            builder: (_) => const PlayerSearchScreen(),
+            settings: settings,
+          );
+        }
+        return null;
+      },
     );
   }
 }

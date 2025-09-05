@@ -14,21 +14,30 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  late TextEditingController _fullNameController;
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late bool _isSearchable;
+  late bool _isTeamSearchable;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Controller'ı, kullanıcının mevcut adıyla başlatıyoruz.
-    _fullNameController =
-        TextEditingController(text: widget.currentUserData['fullName']);
+    // Controller'ları, kullanıcının mevcut ad ve soyadıyla başlatıyoruz.
+    _firstNameController = TextEditingController(
+        text: widget.currentUserData['firstName'] ?? '');
+    _lastNameController = TextEditingController(
+        text: widget.currentUserData['lastName'] ?? '');
+    _isSearchable = (widget.currentUserData['isSearchable'] as bool?) ?? true;
+    _isTeamSearchable = (widget.currentUserData['isTeamSearchable'] as bool?) ?? true;
   }
 
   Future<void> _updateProfile() async {
-    final newName = _fullNameController.text.trim();
-    if (newName.isEmpty) {
-      showSnackBar(context, 'Ad Soyad alanı boş bırakılamaz.', isError: true);
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    
+    if (firstName.isEmpty || lastName.isEmpty) {
+      showSnackBar(context, 'Ad ve Soyad alanları boş bırakılamaz.', isError: true);
       return;
     }
 
@@ -37,11 +46,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
+        final fullName = '$firstName $lastName';
+        
         // 'users' koleksiyonundaki ilgili kullanıcının dokümanını güncelliyoruz.
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
-            .update({'fullName': newName});
+            .update({
+          'firstName': firstName,
+          'lastName': lastName,
+          'fullName': fullName,
+          'fullName_lowercase': fullName.toLowerCase(),
+          'isSearchable': _isSearchable,
+          'isTeamSearchable': _isTeamSearchable,
+        });
 
         if (mounted) {
           showSnackBar(context, 'Profil başarıyla güncellendi!');
@@ -59,7 +77,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -74,13 +93,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _fullNameController,
-              decoration: const InputDecoration(
-                labelText: 'Ad Soyad',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _firstNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Ad',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _lastNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Soyad',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text('Aramalarda görün'),
+              subtitle: const Text('Adınız oyuncu arama sonuçlarında listelensin'),
+              value: _isSearchable,
+              onChanged: (val) => setState(() => _isSearchable = val),
+            ),
+            SwitchListTile(
+              title: const Text('Takım aramalarında görün'),
+              subtitle: const Text('Başka takımlar benim ismimi aratarak davet atabilsin'),
+              value: _isTeamSearchable,
+              onChanged: (val) => setState(() => _isTeamSearchable = val),
             ),
             const SizedBox(height: 30),
             _isLoading

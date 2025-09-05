@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:halisaharakip_app/services/email_verification_service.dart';
-import 'package:halisaharakip_app/screens/main_layout.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -72,26 +71,31 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Kullanıcıya kontrol edildiğini bildir
+      if (mounted) {
+        showSnackBar(context, 'E-posta doğrulama durumu kontrol ediliyor...', isError: false);
+      }
+      
       final isVerified = await EmailVerificationService.isEmailVerified();
       if (isVerified) {
+        // Timer'ı hemen iptal et
+        _timer?.cancel();
+        _timer = null;
+        
         // Firestore'u güncelle
         await EmailVerificationService.onEmailVerificationComplete();
 
         if (mounted) {
+          setState(() => _isLoading = false);
           showSnackBar(context, 'E-posta doğrulandı!', isError: false);
-          // Sayaç ve timer'ı güvenli şekilde durdur
-          _timer?.cancel();
-          _timer = null;
-          // Ana layout'a yönlendir ve geri dönüş stack'ini temizle
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainLayout()),
-            (route) => false,
-          );
+          
+          // AuthGate userChanges() stream'i otomatik olarak güncellenecek
+          // ve MainLayout'a yönlendirecek, bu yüzden burada bir şey yapmaya gerek yok
         }
       } else {
         if (mounted) {
           showSnackBar(context,
-              'E-posta henüz doğrulanmamış. Lütfen e-postanızı kontrol edin.',
+              'E-posta henüz doğrulanmamış. Lütfen e-postanızı kontrol edin ve doğrulama bağlantısına tıklayın.',
               isError: true);
         }
       }
@@ -100,7 +104,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         showSnackBar(context, 'Bir hata oluştu: $e', isError: true);
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

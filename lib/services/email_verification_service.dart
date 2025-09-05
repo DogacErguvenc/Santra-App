@@ -11,7 +11,17 @@ class EmailVerificationService {
   static Future<bool> isEmailVerified() async {
     final user = _auth.currentUser;
     if (user != null) {
-      await user.reload();
+      // Firebase Auth'un e-posta doğrulama durumunu güncellemesi için birden fazla deneme
+      for (int i = 0; i < 3; i++) {
+        await user.reload();
+        if (user.emailVerified) {
+          return true;
+        }
+        // Her deneme arasında kısa bir bekleme
+        if (i < 2) {
+          await Future.delayed(const Duration(milliseconds: 1000));
+        }
+      }
       return user.emailVerified;
     }
     return false;

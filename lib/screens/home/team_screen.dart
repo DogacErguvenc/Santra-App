@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:halisaharakip_app/screens/leaderboard/leaderboard_screen.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:halisaharakip_app/screens/profile/player_profile_screen.dart';
+import 'package:halisaharakip_app/screens/home/player_posts_list_view.dart';
 
 class TeamScreen extends StatefulWidget {
   final DocumentSnapshot userDoc;
@@ -449,6 +451,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 label: const Text('Sıralamayı Gör'),
               ),
               const SizedBox(height: 16),
+              
               Card(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 shape: RoundedRectangleBorder(
@@ -482,9 +485,38 @@ class _TeamScreenState extends State<TeamScreen> {
                 label: const Text("Davet Kodunu Kopyala"),
               ),
               const Divider(height: 40, thickness: 1),
-              const Text("Takım Kadrosu",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(right: 120),
+                    child: Text(
+                      "Takım Kadrosu",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const PlayerPostsListView(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.people, size: 16),
+                      label: const Text('Oyuncu İlanları', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               _buildPlayerList(captainId),
               const Divider(height: 40, thickness: 1),
@@ -539,6 +571,13 @@ class _TeamScreenState extends State<TeamScreen> {
               child: ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: Text(player['fullName'] ?? 'İsimsiz Oyuncu'),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PlayerProfileScreen(playerId: playerId),
+                    ),
+                  );
+                },
                 trailing: widget.userDoc.id == captainId
                     ? (widget.userDoc.id != playerId
                         ? PopupMenuButton<String>(

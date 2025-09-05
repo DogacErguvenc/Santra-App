@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // YENİ EKLENEN VE HATAYI DÜZELTEN SATIR
+import 'package:halisaharakip_app/screens/home/create_player_post_view.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class CreateTeamView extends StatefulWidget {
@@ -108,6 +109,57 @@ class _CreateTeamViewState extends State<CreateTeamView> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Bir Takıma Katıl'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Nasıl bir takıma katılmak istiyorsun?'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _showTeamCodeDialog();
+                  },
+                  icon: const Icon(Icons.group_add),
+                  label: const Text('Takım Kodu ile Katıl'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const CreatePlayerPostView(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Takım Bulmak İçin İlan Oluştur'),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('İptal'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showTeamCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Takım Kodu ile Katıl'),
           content: TextField(
             controller: _teamCodeController,
             decoration: const InputDecoration(
@@ -141,15 +193,20 @@ class _CreateTeamViewState extends State<CreateTeamView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Harika! Şimdi takımını kurma zamanı.',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 30),
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Takım Oluştur veya Katıl',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            const Text('Harika! Şimdi takımını kurma zamanı.',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 30),
           TextField(
             controller: _teamNameController,
             decoration: const InputDecoration(
@@ -188,7 +245,8 @@ class _CreateTeamViewState extends State<CreateTeamView> {
             style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50)),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

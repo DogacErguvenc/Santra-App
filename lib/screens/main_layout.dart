@@ -33,6 +33,29 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
+  Widget? _buildFloatingActionButton(bool canPost) {
+    if (_selectedIndex == 0 && canPost) {
+      // Ana sayfa - Maç ilanı oluştur
+      return FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const CreatePostView()));
+        },
+        child: const Icon(Icons.add),
+      );
+    } else if (_selectedIndex == 1 && canPost) {
+      // İlanlarım - Maç ilanı oluştur
+      return FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const CreatePostView()));
+        },
+        child: const Icon(Icons.add),
+      );
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -59,14 +82,15 @@ class _MainLayoutState extends State<MainLayout> {
         final userData = snapshot.data!;
         final userRole = (userData.data() as Map<String, dynamic>)['role'];
         final userTeamId = (userData.data() as Map<String, dynamic>)['teamId'];
+        final bool hasTeam = userTeamId != null && userTeamId.toString().isNotEmpty;
 
         final bool canPost =
-            (userRole == 'Kaptan' || userRole == 'admin') && userTeamId != null;
+            (userRole == 'Kaptan' || userRole == 'admin') && hasTeam;
 
         final List<Widget> screens = [
           const PostsListView(),
           // DÜZELTME: MyPostsScreen artık parametre almıyor.
-          userTeamId != null
+          hasTeam
               ? const MyPostsScreen()
               : const Center(
                   child: Padding(
@@ -76,9 +100,9 @@ class _MainLayoutState extends State<MainLayout> {
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 16, color: Colors.grey)))),
           const MyMatchesScreen(),
-          userTeamId == null
-              ? CreateTeamView(onTeamCreated: () => setState(() {}))
-              : TeamScreen(userDoc: userData, teamId: userTeamId),
+          hasTeam
+              ? TeamScreen(userDoc: userData, teamId: userTeamId.toString())
+              : CreateTeamView(onTeamCreated: () => setState(() {})),
           // DÜZELTME: ProfileScreen artık parametre almıyor.
           const ProfileScreen(),
         ];
@@ -129,16 +153,7 @@ class _MainLayoutState extends State<MainLayout> {
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
           ),
-          floatingActionButton:
-              ((_selectedIndex == 0 || _selectedIndex == 2) && canPost)
-                  ? FloatingActionButton(
-                      onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => const CreatePostView()));
-                      },
-                      child: const Icon(Icons.add),
-                    )
-                  : null,
+          floatingActionButton: _buildFloatingActionButton(canPost),
         );
       },
     );

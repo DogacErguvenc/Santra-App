@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:halisaharakip_app/screens/profile/player_profile_screen.dart';
 
 class TeamProfileScreen extends StatelessWidget {
   final String teamId;
@@ -432,58 +433,64 @@ class TeamProfileScreen extends StatelessWidget {
                 return Column(
                   children: players.map((playerDoc) {
                     final playerData = playerDoc.data() as Map<String, dynamic>;
-                    final playerName =
-                        playerData['fullName'] ?? 'İsimsiz Oyuncu';
+                    final playerId = playerDoc.id;
+                    final playerName = playerData['fullName'] ?? 'İsimsiz Oyuncu';
                     final playerRole = playerData['role'] ?? 'Oyuncu';
                     final isCaptain = playerRole == 'Kaptan';
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[850],
-                        borderRadius: BorderRadius.circular(8),
-                        border: isCaptain
-                            ? Border.all(
-                                color: Colors.tealAccent[400]!, width: 1)
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: isCaptain
-                                ? Colors.tealAccent[400]
-                                : Colors.grey[600],
-                            child: Icon(
-                              isCaptain ? Icons.star : Icons.person,
-                              color: isCaptain ? Colors.black : Colors.white,
-                            ),
+                    return InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PlayerProfileScreen(playerId: playerId),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  playerName,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: isCaptain
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                                Text(
-                                  playerRole,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                              ],
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[850],
+                          borderRadius: BorderRadius.circular(8),
+                          border: isCaptain
+                              ? Border.all(color: Colors.tealAccent[400]!, width: 1)
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: isCaptain
+                                  ? Colors.tealAccent[400]
+                                  : Colors.grey[600],
+                              child: Icon(
+                                isCaptain ? Icons.star : Icons.person,
+                                color: isCaptain ? Colors.black : Colors.white,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    playerName,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: isCaptain ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                  Text(
+                                    playerRole,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),

@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow reading other users for search
+    }
+    
+    // Teams collection
+    match /teams/{teamId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.uid == resource.data.captainId || 
+         request.auth.uid == request.resource.data.captainId);
+    }
+    
+    // Posts collection (match posts)
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.captainId;
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.captainId;
+    }
+    
+    // Player posts collection (new)
+    match /player_posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.playerId;
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.playerId;
+    }
+    
+    // Team invites collection (new)
+    match /team_invites/{inviteId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.playerId || 
+         request.auth.uid == resource.data.captainId);
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.captainId;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.playerId || 
+         request.auth.uid == resource.data.captainId);
+    }
+    
+    // Matches collection
+    match /matches/{matchId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Challenges subcollection
+    match /posts/{postId}/challenges/{challengeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

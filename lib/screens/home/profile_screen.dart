@@ -8,6 +8,7 @@ import 'package:halisaharakip_app/auth_gate.dart';
 import 'package:halisaharakip_app/screens/admin/admin_user_list_screen.dart';
 import 'package:halisaharakip_app/screens/legal/legal_document_screen.dart';
 import 'package:halisaharakip_app/screens/profile/edit_profile_screen.dart';
+import 'package:halisaharakip_app/screens/profile/team_invites_screen.dart';
 import 'package:halisaharakip_app/utils/legal_texts.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 import 'package:image_picker/image_picker.dart';
@@ -321,6 +322,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(currentUser.email ?? 'E-posta Yok',
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[400])),
+                      const SizedBox(height: 12),
+                      _TeamInvitesSection(currentUserId: currentUser.uid),
                       const Divider(height: 40, thickness: 1),
                       Card(
                         child: Column(
@@ -458,3 +461,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+class _TeamInvitesSection extends StatelessWidget {
+  final String currentUserId;
+  const _TeamInvitesSection({required this.currentUserId});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('team_invites')
+          .where('playerId', isEqualTo: currentUserId)
+          .where('status', isEqualTo: 'pending')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        final invites = snapshot.data!.docs;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Takım Davetleri', style: TextStyle(fontWeight: FontWeight.bold)),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const TeamInvitesScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('Tümünü Gör'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...invites.take(2).map((doc) {
+                  final invite = doc.data() as Map<String, dynamic>;
+                  final teamName = invite['teamName'] ?? 'Takım';
+                  final captainName = invite['captainName'] ?? 'Kaptan';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[850],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[700]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(teamName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text('Kaptan: $captainName', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const TeamInvitesScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Gör', style: TextStyle(color: Colors.blue)),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                if (invites.length > 2)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      '+${invites.length - 2} davet daha',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
