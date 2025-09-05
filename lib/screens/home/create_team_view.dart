@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // YENİ EKLENEN VE HATAYI DÜZELTEN SATIR
 import 'package:halisaharakip_app/screens/home/create_player_post_view.dart';
+import 'package:halisaharakip_app/screens/home/my_player_posts_screen.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class CreateTeamView extends StatefulWidget {
@@ -18,6 +19,56 @@ class _CreateTeamViewState extends State<CreateTeamView> {
   final _teamNameController = TextEditingController();
   final _teamCodeController = TextEditingController();
   bool _isLoading = false;
+  bool _hasPlayerPosts = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPlayerPosts();
+  }
+
+  Future<void> _checkPlayerPosts() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('player_posts')
+          .where('playerId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'Aktif')
+          .get();
+      
+      if (mounted) {
+        setState(() {
+          _hasPlayerPosts = querySnapshot.docs.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      // Hata durumunda sessizce devam et
+    }
+  }
+
+  Future<void> _deletePlayerPosts() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('player_posts')
+          .where('playerId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'Aktif')
+          .get();
+
+      for (final doc in querySnapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Oyuncu ilanları silinirken bir hata oluştu: $e',
+            isError: true);
+      }
+    }
+  }
 
   Future<void> _createTeam() async {
     if (_isLoading) return;
@@ -25,11 +76,23 @@ class _CreateTeamViewState extends State<CreateTeamView> {
       showSnackBar(context, 'Takım adı boş olamaz.', isError: true);
       return;
     }
+
+    // Eğer kullanıcının oyuncu ilanı varsa uyarı göster
+    if (_hasPlayerPosts) {
+      final shouldContinue = await _showDeletePlayerPostsDialog();
+      if (!shouldContinue) return;
+    }
+
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
     setState(() => _isLoading = true);
     try {
+      // Önce oyuncu ilanlarını sil
+      if (_hasPlayerPosts) {
+        await _deletePlayerPosts();
+      }
+
       DocumentReference teamDocRef =
           await FirebaseFirestore.instance.collection('teams').add({
         'teamName': _teamNameController.text.trim(),
@@ -57,6 +120,30 @@ class _CreateTeamViewState extends State<CreateTeamView> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<bool> _showDeletePlayerPostsDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Oyuncu İlanı Silinecek'),
+          content: const Text(
+            'Takım oluşturduğunuzda, mevcut oyuncu ilanınız otomatik olarak silinecektir. Devam etmek istiyor musunuz?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Devam Et'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
   }
 
   Future<void> _joinTeam() async {
@@ -103,56 +190,6 @@ class _CreateTeamViewState extends State<CreateTeamView> {
     }
   }
 
-  void _showJoinTeamDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Bir Takıma Katıl'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Nasıl bir takıma katılmak istiyorsun?'),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _showTeamCodeDialog();
-                  },
-                  icon: const Icon(Icons.group_add),
-                  label: const Text('Takım Kodu ile Katıl'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const CreatePlayerPostView(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Takım Bulmak İçin İlan Oluştur'),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('İptal'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showTeamCodeDialog() {
     showDialog(
@@ -238,13 +275,61 @@ class _CreateTeamViewState extends State<CreateTeamView> {
             Expanded(child: Divider())
           ]),
           const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: _showJoinTeamDialog,
-            icon: const Icon(Icons.group_add_outlined),
-            label: const Text('Mevcut Bir Takıma Katıl'),
-            style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50)),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                _showTeamCodeDialog();
+              },
+              icon: const Icon(Icons.group_add),
+              label: const Text('Takım Kodu ile Katıl'),
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50)),
+            ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CreatePlayerPostView(),
+                  ),
+                ).then((_) {
+                  // İlan oluşturulduktan sonra oyuncu ilanlarını tekrar kontrol et
+                  _checkPlayerPosts();
+                });
+              },
+              icon: const Icon(Icons.person_add),
+              label: const Text('Takım Bulmak İçin İlan Oluştur'),
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50)),
+            ),
+          ),
+          // Oyuncu ilanları varsa görüntüleme butonu göster
+          if (_hasPlayerPosts) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyPlayerPostsScreen(),
+                    ),
+                  ).then((_) {
+                    // İlan silindikten sonra oyuncu ilanlarını tekrar kontrol et
+                    _checkPlayerPosts();
+                  });
+                },
+                icon: const Icon(Icons.visibility),
+                label: const Text('Oyuncu İlanlarımı Görüntüle'),
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 40)),
+              ),
+            ),
+          ],
           ],
         ),
       ),
