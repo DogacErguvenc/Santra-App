@@ -142,6 +142,21 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
         return;
       }
 
+      // Kullanıcının zaten aktif bir oyuncu ilanı olup olmadığını kontrol et
+      final existingPostsQuery = await FirebaseFirestore.instance
+          .collection('player_posts')
+          .where('playerId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'Aktif')
+          .get();
+      
+      if (existingPostsQuery.docs.isNotEmpty) {
+        if (mounted)
+          showSnackBar(context, 'Zaten aktif bir oyuncu ilanınız bulunmaktadır. Yeni ilan açmak için mevcut ilanınızı silin.',
+              isError: true);
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final fullName = userData?['fullName'] ?? 'İsimsiz Oyuncu';
       final profileImageURL = userData?['profileImageURL'];
 

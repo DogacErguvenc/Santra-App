@@ -16,8 +16,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
-  late bool _isSearchable;
-  late bool _isTeamSearchable;
   bool _isLoading = false;
 
   @override
@@ -28,8 +26,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: widget.currentUserData['firstName'] ?? '');
     _lastNameController = TextEditingController(
         text: widget.currentUserData['lastName'] ?? '');
-    _isSearchable = (widget.currentUserData['isSearchable'] as bool?) ?? true;
-    _isTeamSearchable = (widget.currentUserData['isTeamSearchable'] as bool?) ?? true;
   }
 
   Future<void> _updateProfile() async {
@@ -58,8 +54,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'fullName': fullName,
           'fullName_lowercase': fullName.toLowerCase(),
           'displayName': fullName, // displayName alanını da güncelle
-          'isSearchable': _isSearchable,
-          'isTeamSearchable': _isTeamSearchable,
         });
 
         if (mounted) {
@@ -118,19 +112,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Aramalarda görün'),
-              subtitle: const Text('Adınız oyuncu arama sonuçlarında listelensin'),
-              value: _isSearchable,
-              onChanged: (val) => setState(() => _isSearchable = val),
-            ),
-            SwitchListTile(
-              title: const Text('Takım aramalarında görün'),
-              subtitle: const Text('Başka takımlar benim ismimi aratarak davet atabilsin'),
-              value: _isTeamSearchable,
-              onChanged: (val) => setState(() => _isTeamSearchable = val),
             ),
             const SizedBox(height: 30),
             _isLoading

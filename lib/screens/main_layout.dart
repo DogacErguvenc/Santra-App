@@ -7,6 +7,7 @@ import 'package:halisaharakip_app/screens/home/posts_list_view.dart';
 import 'package:halisaharakip_app/screens/home/profile_screen.dart';
 import 'package:halisaharakip_app/screens/home/team_screen.dart';
 import 'package:halisaharakip_app/screens/matches/my_matches_screen.dart';
+import 'package:halisaharakip_app/screens/notifications/notifications_screen.dart';
 import 'package:halisaharakip_app/screens/profile/my_posts_screen.dart';
 
 class MainLayout extends StatefulWidget {
@@ -119,6 +120,59 @@ class _MainLayoutState extends State<MainLayout> {
           appBar: AppBar(
             title: Text(appBarTitles[_selectedIndex]),
             actions: [
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('notifications')
+                    .where('userId', isEqualTo: currentUser.uid)
+                    .where('isRead', isEqualTo: false)
+                    .snapshots(),
+                builder: (context, notificationSnapshot) {
+                  final unreadCount = notificationSnapshot.hasData 
+                      ? notificationSnapshot.data!.docs.length 
+                      : 0;
+                  
+                  return Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.notifications_outlined),
+                        tooltip: 'Bildirimler',
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              unreadCount > 99 ? '99+' : unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
               IconButton(
                   onPressed: () => FirebaseAuth.instance.signOut(),
                   icon: const Icon(Icons.logout),

@@ -113,17 +113,21 @@ class _PlayerPostsListViewState extends State<PlayerPostsListView> {
         return;
       }
 
-      // Oyuncunun takım aramalarında görünür olup olmadığını kontrol et
-      final playerDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(playerId)
+      // Aynı oyuncuya daha önce davet gönderilip gönderilmediğini kontrol et
+      final existingInviteQuery = await FirebaseFirestore.instance
+          .collection('team_invites')
+          .where('playerId', isEqualTo: playerId)
+          .where('captainId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'pending')
           .get();
-      final playerData = playerDoc.data();
       
-      if (playerData?['isTeamSearchable'] != true) {
-        showSnackBar(context, 'Bu oyuncu takım davetlerini kabul etmiyor.', isError: true);
+      if (existingInviteQuery.docs.isNotEmpty) {
+        showSnackBar(context, 'Bu oyuncuya zaten bir davet gönderdiniz.', isError: true);
         return;
       }
+
+      // Oyuncu ilanı açmışsa, takım davetlerini kabul etmeye istekli demektir
+      // Bu yüzden isTeamSearchable kontrolü yapmıyoruz
 
       // Davet gönder
       await FirebaseFirestore.instance.collection('team_invites').add({
@@ -189,7 +193,7 @@ class _PlayerPostsListViewState extends State<PlayerPostsListView> {
     );
   }
 
-  Widget _buildPlayerPostCard(Map<String, dynamic> postData, String postId) {
+  Widget _buildPlayerPostCard(Map<String, dynamic> postData, String postId, bool isCaptain) {
     final playerName = postData['playerName'] ?? 'İsimsiz Oyuncu';
     final position = postData['position'] ?? '';
     final experience = postData['experience'] ?? '';
@@ -292,14 +296,16 @@ class _PlayerPostsListViewState extends State<PlayerPostsListView> {
                     label: const Text('Profili Gör'),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _sendTeamInvite(postData['playerId'], playerName),
-                    icon: const Icon(Icons.group_add, size: 16),
-                    label: const Text('Davet Gönder'),
+                if (isCaptain) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _sendTeamInvite(postData['playerId'], playerName),
+                      icon: const Icon(Icons.group_add, size: 16),
+                      label: const Text('Davet Gönder'),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -356,19 +362,6 @@ class _PlayerPostsListViewState extends State<PlayerPostsListView> {
           final userRole = userData['role'];
           final userTeamId = userData['teamId'];
           final bool isCaptain = userRole == 'Kaptan' && userTeamId != null;
-          
-          if (!isCaptain) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text(
-                  'Bu sayfayı sadece takım kaptanları görüntüleyebilir.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            );
-          }
           
           return Column(
         children: [
@@ -472,6 +465,7 @@ class _PlayerPostsListViewState extends State<PlayerPostsListView> {
                     return _buildPlayerPostCard(
                       post.data() as Map<String, dynamic>,
                       post.id,
+                      isCaptain,
                     );
                   },
                 );

@@ -170,6 +170,12 @@ class _CreateTeamViewState extends State<CreateTeamView> {
         setState(() => _isLoading = false);
         return;
       }
+
+      // Eğer kullanıcının oyuncu ilanı varsa sil
+      if (_hasPlayerPosts) {
+        await _deletePlayerPosts();
+      }
+
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
@@ -288,28 +294,8 @@ class _CreateTeamViewState extends State<CreateTeamView> {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const CreatePlayerPostView(),
-                  ),
-                ).then((_) {
-                  // İlan oluşturulduktan sonra oyuncu ilanlarını tekrar kontrol et
-                  _checkPlayerPosts();
-                });
-              },
-              icon: const Icon(Icons.person_add),
-              label: const Text('Takım Bulmak İçin İlan Oluştur'),
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50)),
-            ),
-          ),
-          // Oyuncu ilanları varsa görüntüleme butonu göster
+          // Oyuncu ilanı varsa görüntüleme butonu, yoksa ilan oluşturma butonu göster
           if (_hasPlayerPosts) ...[
-            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -326,7 +312,27 @@ class _CreateTeamViewState extends State<CreateTeamView> {
                 icon: const Icon(Icons.visibility),
                 label: const Text('Oyuncu İlanlarımı Görüntüle'),
                 style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 40)),
+                    minimumSize: const Size(double.infinity, 50)),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CreatePlayerPostView(),
+                    ),
+                  ).then((_) {
+                    // İlan oluşturulduktan sonra oyuncu ilanlarını tekrar kontrol et
+                    _checkPlayerPosts();
+                  });
+                },
+                icon: const Icon(Icons.person_add),
+                label: const Text('Takım Bulmak İçin İlan Oluştur'),
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50)),
               ),
             ),
           ],

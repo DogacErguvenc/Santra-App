@@ -59,6 +59,9 @@ class NotificationService {
       print('Uygulama açıkken bir bildirim geldi!');
       print('Mesaj verisi: ${message.data}');
 
+      // Firestore'a bildirim kaydet
+      _saveNotificationToFirestore(message);
+
       if (message.notification != null) {
         print('Mesaj ayrıca bir bildirim içeriyor: ${message.notification}');
         if (navigatorKey.currentState != null) {
@@ -69,6 +72,30 @@ class NotificationService {
         }
       }
     });
+  }
+
+  Future<void> _saveNotificationToFirestore(RemoteMessage message) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      final notificationData = {
+        'userId': currentUser.uid,
+        'title': message.notification?.title ?? 'Yeni Bildirim',
+        'body': message.notification?.body ?? '',
+        'type': message.data['type'] ?? 'general',
+        'postId': message.data['postId'],
+        'matchId': message.data['matchId'],
+        'isRead': false,
+        'createdAt': Timestamp.now(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .add(notificationData);
+    } catch (e) {
+      print('Bildirim Firestore\'a kaydedilemedi: $e');
+    }
   }
 
   void _setupInteractedMessage() {

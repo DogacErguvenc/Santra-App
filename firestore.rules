@@ -16,10 +16,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/teams/$(teamId)).data.captainId == request.auth.uid;
     }
 
-    function hasPendingInvite(uid, teamId) {
-      return exists(/databases/$(database)/documents/users/$(uid)/teamInvites/$(teamId))
-        && get(/databases/$(database)/documents/users/$(uid)/teamInvites/$(teamId)).data.status == 'pending';
-    }
 
     // ------------ USERS ------------
     match /users/{uid} {
@@ -32,12 +28,12 @@ service cloud.firestore {
         && request.resource.data.motmAwards == 0
         && request.resource.data.uid == request.auth.uid;
 
-      // UPDATE (basic profile fields + fcmTokens, deviceId)
-      // - Sadece şu alanlar değişebilir: displayName, photoURL, fcmTokens, deviceId, firstName, lastName, fullName, fullName_lowercase, isSearchable, isTeamSearchable
+      // UPDATE (basic profile fields + fcmTokens, deviceId, role)
+      // - Sadece şu alanlar değişebilir: displayName, photoURL, fcmTokens, deviceId, firstName, lastName, fullName, fullName_lowercase, isSearchable, isTeamSearchable, role
       // - Diğer kritik alanlar gönderildiyse mevcut değerle aynı olmalı (merge güncellemeleri kırılmasın)
       allow update: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['displayName','photoURL','fcmTokens','deviceId','firstName','lastName','fullName','fullName_lowercase','isSearchable','isTeamSearchable'])
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['displayName','photoURL','fcmTokens','deviceId','firstName','lastName','fullName','fullName_lowercase','isSearchable','isTeamSearchable','role'])
         && (
           !request.resource.data.keys().hasAny(['uid']) ||
           request.resource.data.uid == resource.data.uid
@@ -53,10 +49,17 @@ service cloud.firestore {
         && (
           !request.resource.data.keys().hasAny(['motmAwards']) ||
           request.resource.data.motmAwards == resource.data.motmAwards
-        )
+        );
+
+      // UPDATE (team creation: user becomes captain of new team)
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.teamId == null
+        && request.resource.data.teamId is string
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
         && (
-          !request.resource.data.keys().hasAny(['teamId']) ||
-          request.resource.data.teamId == resource.data.teamId
+          !request.resource.data.keys().hasAny(['role']) ||
+          request.resource.data.role == 'Kaptan'
         );
 
       // UPDATE (invite accept: user joins a team)
@@ -64,7 +67,6 @@ service cloud.firestore {
         && request.auth.uid == uid
         && resource.data.teamId == null
         && request.resource.data.teamId is string
-        && hasPendingInvite(uid, request.resource.data.teamId)
         && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
         && (
           !request.resource.data.keys().hasAny(['role']) ||
@@ -77,6 +79,17 @@ service cloud.firestore {
         && isCaptainOfTeam(resource.data.teamId)
         && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
         && request.resource.data.teamId == null
+        && (
+          !request.resource.data.keys().hasAny(['role']) ||
+          request.resource.data.role == 'Oyuncu'
+        );
+
+      // UPDATE (player leaves team voluntarily)
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.teamId is string
+        && request.resource.data.teamId == null
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['teamId','role'])
         && (
           !request.resource.data.keys().hasAny(['role']) ||
           request.resource.data.role == 'Oyuncu'
@@ -116,7 +129,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn();
       allow update: if isCaptainOfTeam(resource.data.teamId) || isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if isCaptainOfTeam(resource.data.teamId) || isAdmin();
     }
 
     // ------------ POSTS (Team Match Posts) ------------
@@ -166,6 +179,14 @@ service cloud.firestore {
         resource.data.playerId == request.auth.uid ||
         resource.data.captainId == request.auth.uid
       );
+      allow delete: if false;
+    }
+
+    // ------------ NOTIFICATIONS ------------
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && resource.data.userId == request.auth.uid;
       allow delete: if false;
     }
 

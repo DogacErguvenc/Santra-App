@@ -452,38 +452,41 @@ class _TeamScreenState extends State<TeamScreen> {
               ),
               const SizedBox(height: 16),
               
-              Card(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey[700]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      Text("Takım Davet Kodu:",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[400])),
-                      const SizedBox(height: 4),
-                      SelectableText(widget.teamId,
-                          style: TextStyle(
-                              fontFamily: 'monospace',
-                              color: Theme.of(context).colorScheme.primary)),
-                    ],
+              // Takım Davet Kodu sadece kaptanlara gösterilir
+              if (isCurrentUserTheCaptain) ...[
+                Card(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.grey[700]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      children: [
+                        Text("Takım Davet Kodu:",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[400])),
+                        const SizedBox(height: 4),
+                        SelectableText(widget.teamId,
+                            style: TextStyle(
+                                fontFamily: 'monospace',
+                                color: Theme.of(context).colorScheme.primary)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: widget.teamId));
-                  showSnackBar(context, 'Takım davet kodu panoya kopyalandı!');
-                },
-                icon: const Icon(Icons.copy_all_outlined),
-                label: const Text("Davet Kodunu Kopyala"),
-              ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: widget.teamId));
+                    showSnackBar(context, 'Takım davet kodu panoya kopyalandı!');
+                  },
+                  icon: const Icon(Icons.copy_all_outlined),
+                  label: const Text("Davet Kodunu Kopyala"),
+                ),
+              ],
               const Divider(height: 40, thickness: 1),
               Stack(
                 alignment: Alignment.center,

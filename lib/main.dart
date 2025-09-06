@@ -9,7 +9,6 @@ import 'auth_gate.dart';
 import 'firebase_options.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
 import 'package:halisaharakip_app/screens/profile/player_profile_screen.dart';
-import 'package:halisaharakip_app/screens/profile/player_search_screen.dart';
 
 void main() async {
   // Flutter binding'lerinin hazır olduğundan emin oluyoruz
@@ -90,13 +89,6 @@ class MyApp extends StatelessWidget {
           final uid = uri.pathSegments[1];
           return MaterialPageRoute(
             builder: (_) => PlayerProfileScreen(playerId: uid),
-            settings: settings,
-          );
-        }
-        // /search/players
-        if (uri.path == '/search/players') {
-          return MaterialPageRoute(
-            builder: (_) => const PlayerSearchScreen(),
             settings: settings,
           );
         }

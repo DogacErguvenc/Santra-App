@@ -203,6 +203,17 @@ class _TeamInvitesScreenState extends State<TeamInvitesScreen> {
         }
       }
       
+      // Oyuncu ilanlarını sil
+      final playerPostsQuery = await FirebaseFirestore.instance
+          .collection('player_posts')
+          .where('playerId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'Aktif')
+          .get();
+      
+      for (final doc in playerPostsQuery.docs) {
+        batch.delete(doc.reference);
+      }
+      
       await batch.commit();
       
       if (mounted) {
