@@ -25,7 +25,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
   TimeOfDay? _selectedTime;
   String? _selectedGameLevel;
   String? _selectedDistrict;
-  bool _contactConsent = true;
 
   final List<String> _districts = [
     'Adalar',
@@ -108,11 +107,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final postData = widget.post.data() as Map<String, dynamic>;
+      final currentStatus = postData['status'] ?? 'Bilinmiyor';
       final matchDateTime = DateTime(_selectedDate!.year, _selectedDate!.month,
           _selectedDate!.day, _selectedTime!.hour, _selectedTime!.minute);
       final pitchName = _pitchNameController.text.trim();
 
-      await widget.post.reference.update({
+      // Güncellenecek veriler
+      Map<String, dynamic> updateData = {
         'pitchName': pitchName,
         'pitchName_lowercase': pitchName.toLowerCase(),
         'district': _selectedDistrict,
@@ -124,10 +126,29 @@ class _EditPostScreenState extends State<EditPostScreen> {
           'socialMedia': _socialMediaController.text.trim(),
           'other': _otherContactController.text.trim(),
         },
-      });
+        'lastEditedAt': Timestamp.now(),
+      };
+
+      // Eğer ilan aktifse veya reddedildiyse, tekrar admin onayına gönder
+      if (currentStatus == 'Aktif' || currentStatus == 'Reddedildi') {
+        updateData.addAll({
+          'status': 'Beklemede',
+          'adminApproved': false,
+          'reEditedAt': Timestamp.now(),
+          'reEditedBy': postData['captainId'], // Kullanıcı ID'si
+        });
+      }
+
+      await widget.post.reference.update(updateData);
 
       if (mounted) {
-        showSnackBar(context, 'İlan başarıyla güncellendi!');
+        if (currentStatus == 'Aktif') {
+          showSnackBar(context, 'İlan güncellendi! Tekrar admin onayına gönderildi.');
+        } else if (currentStatus == 'Reddedildi') {
+          showSnackBar(context, 'İlan güncellendi! Admin onayına gönderildi.');
+        } else {
+          showSnackBar(context, 'İlan başarıyla güncellendi!');
+        }
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -163,13 +184,93 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final postData = widget.post.data() as Map<String, dynamic>;
+    final currentStatus = postData['status'] ?? 'Bilinmiyor';
+    
+    String appBarTitle = 'İlanı Düzenle';
+    if (currentStatus == 'Aktif') {
+      appBarTitle = 'İlanı Düzenle (Tekrar Onay Gerekli)';
+    } else if (currentStatus == 'Reddedildi') {
+      appBarTitle = 'İlanı Düzenle (Admin Onayı Gerekli)';
+    }
+    
     return Scaffold(
-      appBar: AppBar(title: const Text('İlanı Düzenle')),
+      appBar: AppBar(title: Text(appBarTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (currentStatus == 'Aktif')
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Önemli Uyarı',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Bu ilan aktif durumda. Düzenleme yaptığınızda ilan tekrar admin onayına gönderilecek ve geçici olarak yayından kaldırılacaktır.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (currentStatus == 'Reddedildi')
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'İlan Reddedildi',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Bu ilan admin tarafından reddedilmiş. Düzenleme yaptığınızda ilan tekrar admin onayına gönderilecektir.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             TextField(
               controller: _pitchNameController,
               decoration: const InputDecoration(
@@ -276,8 +377,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
                     onPressed: _updatePost,
                     style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50)),
-                    child: const Text('Değişiklikleri Kaydet',
-                        style: TextStyle(fontSize: 16)),
+                    child: Text(
+                      currentStatus == 'Aktif' 
+                          ? 'Değişiklikleri Kaydet ve Tekrar Onaya Gönder'
+                          : currentStatus == 'Reddedildi'
+                              ? 'Değişiklikleri Kaydet ve Onaya Gönder'
+                              : 'Değişiklikleri Kaydet',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
           ],
         ),

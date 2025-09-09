@@ -102,7 +102,8 @@ class _PostsListViewState extends State<PostsListView> {
   Widget build(BuildContext context) {
     Query postsQuery = FirebaseFirestore.instance
         .collection('posts')
-        .where('status', isEqualTo: 'Aktif');
+        .where('status', isEqualTo: 'Aktif')
+        .where('adminApproved', isEqualTo: true);
 
     if (_searchController.text.isNotEmpty) {
       String searchQuery = _searchController.text.toLowerCase();

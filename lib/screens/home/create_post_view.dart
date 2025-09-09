@@ -175,7 +175,8 @@ class _CreatePostViewState extends State<CreatePostView> {
         'notes': _notesController.text.trim(),
         'gameLevel': _selectedGameLevel,
         'matchTimestamp': Timestamp.fromDate(matchDateTime),
-        'status': 'Aktif',
+        'status': 'Beklemede', // Admin onayı bekliyor
+        'adminApproved': false, // Admin onay durumu
         'createdAt': Timestamp.now(),
         'contactInfo': {
           'phone': _phoneController.text.trim(),
@@ -185,7 +186,7 @@ class _CreatePostViewState extends State<CreatePostView> {
       });
 
       if (mounted) {
-        showSnackBar(context, 'İlan başarıyla oluşturuldu!');
+        showSnackBar(context, 'İlan başarıyla oluşturuldu! Admin onayından sonra yayınlanacak.');
         Navigator.of(context).pop();
       }
     } catch (e) {

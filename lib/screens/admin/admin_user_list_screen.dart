@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart'; // Yeni paketi import ediyoruz
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:halisaharakip_app/screens/admin/admin_posts_approval_screen.dart';
 import 'package:halisaharakip_app/utils/show_snackbar.dart';
 
 class AdminUserListScreen extends StatelessWidget {
@@ -121,71 +122,126 @@ class AdminUserListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kullanıcı Yönetimi'),
+        title: const Text('Admin Paneli'),
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return const Center(
-                child: Text('Kullanıcılar getirilirken bir hata oluştu.'));
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-                child: Text('Sistemde hiç kullanıcı bulunmuyor.'));
-          }
-
-          final users = snapshot.data!.docs;
-
-          return ListView.builder(
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final userData = users[index].data() as Map<String, dynamic>;
-              final userId = users[index].id;
-              final userRole = userData['role'] ?? 'Oyuncu';
-              final userName = userData['fullName'] ?? 'İsimsiz Kullanıcı';
-              final isBanned = userData['isBanned'] ?? false;
-
-              return Card(
-                color: isBanned ? Colors.red.withOpacity(0.1) : null,
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: userRole == 'admin'
-                        ? Colors.redAccent.withOpacity(0.3)
-                        : Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.1),
-                    child: Icon(
-                      userRole == 'admin'
-                          ? Icons.admin_panel_settings
-                          : Icons.person,
-                      color: userRole == 'admin'
-                          ? Colors.redAccent
-                          : Theme.of(context).colorScheme.primary,
+      body: Column(
+        children: [
+          // Admin Panel Menüsü
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.article_outlined, color: Colors.orange),
+                    title: const Text('Maç İlanları Onayı'),
+                    subtitle: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('posts')
+                          .where('status', isEqualTo: 'Beklemede')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        final pendingCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                        return Text('$pendingCount ilan onay bekliyor');
+                      },
                     ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AdminPostsApprovalScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  title: Text(userName),
-                  subtitle: Text(userData['email'] ?? 'E-posta Yok'),
-                  trailing: isBanned
-                      ? const Icon(Icons.block, color: Colors.red)
-                      : null,
-                  onTap: () {
-                    _showUserActionsDialog(
-                        context, userName, userId, isBanned, userRole);
-                  },
                 ),
-              );
-            },
-          );
-        },
+                const SizedBox(height: 8),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.people_outlined, color: Colors.blue),
+                    title: const Text('Kullanıcı Yönetimi'),
+                    subtitle: const Text('Kullanıcıları yönet ve banla'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      // Bu sayfada kal, sadece scroll yap
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          // Kullanıcı Listesi
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                      child: Text('Kullanıcılar getirilirken bir hata oluştu.'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                      child: Text('Sistemde hiç kullanıcı bulunmuyor.'));
+                }
+
+                final users = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final userData = users[index].data() as Map<String, dynamic>;
+                    final userId = users[index].id;
+                    final userRole = userData['role'] ?? 'Oyuncu';
+                    final userName = userData['fullName'] ?? 'İsimsiz Kullanıcı';
+                    final isBanned = userData['isBanned'] ?? false;
+
+                    return Card(
+                      color: isBanned ? Colors.red.withOpacity(0.1) : null,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: userRole == 'admin'
+                              ? Colors.redAccent.withOpacity(0.3)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.1),
+                          child: Icon(
+                            userRole == 'admin'
+                                ? Icons.admin_panel_settings
+                                : Icons.person,
+                            color: userRole == 'admin'
+                                ? Colors.redAccent
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(userName),
+                        subtitle: Text(userData['email'] ?? 'E-posta Yok'),
+                        trailing: isBanned
+                            ? const Icon(Icons.block, color: Colors.red)
+                            : null,
+                        onTap: () {
+                          _showUserActionsDialog(
+                              context, userName, userId, isBanned, userRole);
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

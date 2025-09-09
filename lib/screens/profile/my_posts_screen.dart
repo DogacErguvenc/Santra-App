@@ -10,13 +10,23 @@ class MyPostsScreen extends StatelessWidget {
   // DÜZELTME: const kurucu artık sorunsuz çalışıyor çünkü sabit olmayan alan kaldırıldı.
   const MyPostsScreen({super.key});
 
-  Future<void> _deletePost(BuildContext context, String postId) async {
+  Future<void> _deletePost(BuildContext context, String postId, String status) async {
+    String dialogTitle = 'İlanı Sil';
+    String dialogContent = 'Bu ilanı ve gelen tüm teklifleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.';
+    
+    if (status == 'Beklemede') {
+      dialogTitle = 'Bekleyen İlanı Sil';
+      dialogContent = 'Bu ilan henüz admin onayından geçmemiş. Silmek istediğinize emin misiniz?';
+    } else if (status == 'Reddedildi') {
+      dialogTitle = 'Reddedilen İlanı Sil';
+      dialogContent = 'Bu ilan admin tarafından reddedilmiş. Silmek istediğinize emin misiniz?';
+    }
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('İlanı Sil'),
-        content: const Text(
-            'Bu ilanı ve gelen tüm teklifleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
+        title: Text(dialogTitle),
+        content: Text(dialogContent),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -112,40 +122,109 @@ class MyPostsScreen extends StatelessWidget {
               final formattedDate = DateFormat('dd MMMM, HH:mm', 'tr_TR')
                   .format((postData['matchTimestamp'] as Timestamp).toDate());
               final status = postData['status'] ?? 'Bilinmiyor';
+              final adminApproved = postData['adminApproved'] ?? false;
+              final rejectionReason = postData['rejectionReason'];
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: ListTile(
                   title: Text(postData['pitchName'],
                       style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Durum: $status - $formattedDate"),
-                  // Sadece 'Aktif' ilanlar düzenlenebilir ve silinebilir.
-                  trailing: status == 'Aktif'
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Durum: $status - $formattedDate"),
+                      if (status == 'Beklemede')
+                        const Text(
+                          "Admin onayı bekleniyor...",
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        )
+                      else if (status == 'Reddedildi')
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined,
-                                  color: Colors.blueAccent),
-                              tooltip: 'Düzenle',
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        EditPostScreen(post: postDoc),
-                                  ),
-                                );
-                              },
+                            const Text(
+                              "İlan reddedildi",
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.delete_outline,
-                                  color: Colors.red[700]),
-                              tooltip: 'İlanı Sil',
-                              onPressed: () => _deletePost(context, postDoc.id),
-                            ),
+                            if (rejectionReason != null && rejectionReason.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Reddetme Sebebi:",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      rejectionReason,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         )
-                      : null,
+                      else if (status == 'Aktif' && adminApproved)
+                        const Text(
+                          "✓ Admin onaylandı",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                  // Tüm ilanlar silinebilir, 'Aktif' ve 'Reddedildi' ilanlar düzenlenebilir
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (status == 'Aktif' || status == 'Reddedildi')
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined,
+                              color: Colors.blueAccent),
+                          tooltip: 'Düzenle',
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    EditPostScreen(post: postDoc),
+                              ),
+                            );
+                          },
+                        ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline,
+                            color: Colors.red[700]),
+                        tooltip: 'İlanı Sil',
+                        onPressed: () => _deletePost(context, postDoc.id, status),
+                      ),
+                    ],
+                  ),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
