@@ -38,13 +38,20 @@ class NotificationService {
             .get();
         
         if (userDoc.exists) {
-          // Kullanıcı dokümanı varsa fcmTokens alanını güncelle
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser.uid)
-              .update({
-            'fcmTokens': FieldValue.arrayUnion([token]),
-          });
+          final existingTokens = List<String>.from(userDoc.data()?['fcmTokens'] ?? []);
+          
+          // Eğer token zaten varsa, tekrar ekleme
+          if (!existingTokens.contains(token)) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUser.uid)
+                .update({
+              'fcmTokens': FieldValue.arrayUnion([token]),
+            });
+            print('Yeni FCM token kaydedildi: $token');
+          } else {
+            print('FCM token zaten mevcut, tekrar kaydedilmiyor: $token');
+          }
         } else {
           print('Kullanıcı dokümanı henüz oluşturulmamış, FCM token kaydedilemedi');
         }
@@ -79,13 +86,39 @@ class NotificationService {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
+      final title = message.notification?.title ?? 'Yeni Bildirim';
+      final body = message.notification?.body ?? '';
+      final type = message.data['type'] ?? 'general';
+      final postId = message.data['postId'];
+      final matchId = message.data['matchId'];
+
+      // Son 5 dakika içinde aynı bildirim var mı kontrol et (daha hızlı)
+      final fiveMinutesAgo = Timestamp.fromDate(
+        DateTime.now().subtract(const Duration(minutes: 5))
+      );
+      
+      final existingNotification = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('title', isEqualTo: title)
+          .where('type', isEqualTo: type)
+          .where('createdAt', isGreaterThan: fiveMinutesAgo)
+          .limit(1)
+          .get();
+
+      // Eğer aynı bildirim son 5 dakika içinde varsa, tekrar kaydetme
+      if (existingNotification.docs.isNotEmpty) {
+        print('Aynı bildirim son 5 dakika içinde zaten mevcut, tekrar kaydedilmiyor');
+        return;
+      }
+
       final notificationData = {
         'userId': currentUser.uid,
-        'title': message.notification?.title ?? 'Yeni Bildirim',
-        'body': message.notification?.body ?? '',
-        'type': message.data['type'] ?? 'general',
-        'postId': message.data['postId'],
-        'matchId': message.data['matchId'],
+        'title': title,
+        'body': body,
+        'type': type,
+        'postId': postId,
+        'matchId': matchId,
         'isRead': false,
         'createdAt': Timestamp.now(),
       };
@@ -93,6 +126,7 @@ class NotificationService {
       await FirebaseFirestore.instance
           .collection('notifications')
           .add(notificationData);
+      print('Bildirim Firestore\'a kaydedildi: $title');
     } catch (e) {
       print('Bildirim Firestore\'a kaydedilemedi: $e');
     }

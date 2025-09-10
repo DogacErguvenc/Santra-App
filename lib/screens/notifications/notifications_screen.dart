@@ -100,10 +100,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isRead ? null : Colors.blue.shade50,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isRead ? Colors.grey : Colors.blue,
+          backgroundColor: isRead ? Colors.grey : Colors.red,
           child: Icon(
             _getNotificationIcon(type),
             color: Colors.white,
@@ -112,8 +111,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+          style: const TextStyle(
+            fontWeight: FontWeight.normal,
           ),
         ),
         subtitle: Column(
@@ -133,16 +132,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
           ],
         ),
-        trailing: isRead
-            ? null
-            : Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-              ),
         onTap: () => _handleNotificationTap(
           notificationId,
           type,

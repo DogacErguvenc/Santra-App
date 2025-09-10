@@ -93,17 +93,30 @@ exports.cancelMatch = onCall(async (request) => {
     await batch.commit();
     console.log(`Maç ${matchId} başarıyla iptal edildi.`);
 
-    // 4. Diğer kaptana bildirim gönder
+    // 4. Sadece diğer kaptana bildirim gönder (iptal eden kişiye değil)
     const otherCaptainId =
       userId === matchData.homeCaptainId
         ? matchData.awayCaptainId
         : matchData.homeCaptainId;
+    
+    console.log(`İptal eden kullanıcı ID: ${userId}`);
+    console.log(`Bildirim gönderilecek kullanıcı ID: ${otherCaptainId}`);
+    
+    // Güvenlik kontrolü: İptal eden kişiye bildirim gönderilmemeli
+    if (otherCaptainId === userId) {
+      console.log(`HATA: İptal eden kişi ile bildirim gönderilecek kişi aynı! Bildirim gönderilmiyor.`);
+      return { success: true, message: "Maç başarıyla iptal edildi." };
+    }
+    
     const otherCaptainDoc = await firestore
       .collection("users")
       .doc(otherCaptainId)
       .get();
     if (otherCaptainDoc.exists && otherCaptainDoc.data().fcmTokens) {
       const tokens = otherCaptainDoc.data().fcmTokens;
+      console.log(`Bildirim gönderilecek token sayısı: ${tokens.length}`);
+      console.log(`Token'lar: ${JSON.stringify(tokens)}`);
+      
       if (tokens.length > 0) {
         const message = {
           notification: {
@@ -112,11 +125,31 @@ exports.cancelMatch = onCall(async (request) => {
               userDoc.data().fullName
             } adlı kullanıcı, aranızdaki maçı iptal etti.`,
           },
-          data: { cancelledPostId: postId }, // Tıklayınca ana sayfaya veya ilana gidebilir
+          data: { 
+            type: "match_cancelled",
+            cancelledPostId: postId 
+          },
           tokens: tokens,
         };
+        
+        console.log(`Bildirim gönderiliyor: ${JSON.stringify(message)}`);
         await getMessaging().sendEachForMulticast(message);
+        console.log(`Bildirim başarıyla gönderildi`);
+        
+        // Firestore'a bildirim kaydet
+        await firestore.collection("notifications").add({
+          userId: otherCaptainId,
+          title: "Maç İptal Edildi",
+          body: `${userDoc.data().fullName} adlı kullanıcı, aranızdaki maçı iptal etti.`,
+          type: "match_cancelled",
+          postId: postId,
+          isRead: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`Bildirim Firestore'a kaydedildi`);
       }
+    } else {
+      console.log(`Bildirim gönderilecek kullanıcı bulunamadı veya FCM token'ı yok: ${otherCaptainId}`);
     }
 
     return { success: true, message: "Maç başarıyla iptal edildi." };
@@ -294,10 +327,24 @@ exports.sendChallengeAcceptedNotification = onDocumentCreated(
           title: "Meydan Okuman Kabul Edildi!",
           body: `${homeTeamName} takımı, meydan okumanı kabul etti. Maç ayarlandı!`,
         },
-        data: { matchId: event.params.matchId },
+        data: { 
+          type: "challenge_accepted",
+          matchId: event.params.matchId 
+        },
         tokens: fcmTokens,
       };
       await getMessaging().sendEachForMulticast(message);
+      
+      // Firestore'a bildirim kaydet
+      await getFirestore().collection("notifications").add({
+        userId: challengerCaptainId,
+        title: "Meydan Okuman Kabul Edildi!",
+        body: `${homeTeamName} takımı, meydan okumanı kabul etti. Maç ayarlandı!`,
+        type: "challenge_accepted",
+        matchId: event.params.matchId,
+        isRead: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } catch (error) {
       console.error("Kabul bildirim fonksiyonunda hata oluştu:", error);
     }
@@ -350,10 +397,24 @@ exports.sendScoreDisputedNotification = onDocumentCreated(
           title: "Girdiğin Skora İtiraz Edildi!",
           body: `${disputingTeamName} takımı, girdiğin maç skoruna itiraz etti.`,
         },
-        data: { matchId: matchId },
+        data: { 
+          type: "score_disputed",
+          matchId: matchId 
+        },
         tokens: fcmTokens,
       };
       await getMessaging().sendEachForMulticast(message);
+      
+      // Firestore'a bildirim kaydet
+      await getFirestore().collection("notifications").add({
+        userId: scoreReporterId,
+        title: "Girdiğin Skora İtiraz Edildi!",
+        body: `${disputingTeamName} takımı, girdiğin maç skoruna itiraz etti.`,
+        type: "score_disputed",
+        matchId: matchId,
+        isRead: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } catch (error) {
       console.error("İtiraz bildirim fonksiyonunda hata oluştu:", error);
     }
