@@ -173,8 +173,18 @@ service cloud.firestore {
         && request.resource.data.status == 'Ayarlandı';
       allow update: if signedIn() 
         && resource.data.participantUids.hasAny([request.auth.uid])
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['homeScore', 'awayScore', 'status', 'scoreEnteredAt', 'scoreEnteredBy', 'disputedScore', 'disputedBy', 'confirmedAt', 'confirmedBy']);
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['homeScore', 'awayScore', 'status', 'scoreEnteredAt', 'scoreEnteredBy', 'disputedScore', 'disputedBy', 'confirmedAt', 'confirmedBy', 'dispute']);
       allow delete: if false; // only via Functions
+
+      // ------------ MATCH DISPUTES ------------
+      match /disputes/{disputeId} {
+        allow read: if signedIn() && get(/databases/$(database)/documents/matches/$(matchId)).data.participantUids.hasAny([request.auth.uid]);
+        allow create: if signedIn() 
+          && get(/databases/$(database)/documents/matches/$(matchId)).data.participantUids.hasAny([request.auth.uid])
+          && request.resource.data.keys().hasAll(['disputingTeamName', 'disputedAt']);
+        allow update: if false; // disputes are immutable once created
+        allow delete: if false; // disputes cannot be deleted
+      }
     }
 
     // ------------ TEAM INVITES (Global Collection) ------------
