@@ -204,10 +204,8 @@ class TeamProfileScreen extends StatelessWidget {
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('matches')
-                  .where('participantTeamIds', arrayContains: teamId)
                   .where('status', isEqualTo: 'Onaylandı')
                   .orderBy('matchTimestamp', descending: true)
-                  .limit(5)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -222,8 +220,19 @@ class TeamProfileScreen extends StatelessWidget {
                   return const Text('Henüz maç oynanmamış.');
                 }
 
+                // Takımın maçlarını filtrele
+                final teamMatches = snapshot.data!.docs.where((matchDoc) {
+                  final matchData = matchDoc.data() as Map<String, dynamic>;
+                  return matchData['homeTeamId'] == teamId || 
+                         matchData['awayTeamId'] == teamId;
+                }).take(5).toList();
+
+                if (teamMatches.isEmpty) {
+                  return const Text('Henüz maç oynanmamış.');
+                }
+
                 return Column(
-                  children: snapshot.data!.docs.map((matchDoc) {
+                  children: teamMatches.map((matchDoc) {
                     final matchData = matchDoc.data() as Map<String, dynamic>;
                     return _buildMatchItem(matchData);
                   }).toList(),

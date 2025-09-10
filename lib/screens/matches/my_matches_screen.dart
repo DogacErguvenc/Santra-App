@@ -45,7 +45,7 @@ class _MyMatchesScreenState extends State<MyMatchesScreen> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('matches')
-              .where('participantTeamIds', arrayContains: userTeamId)
+              .where('participantUids', arrayContains: currentUser.uid)
               .orderBy('matchTimestamp',
                   descending: true) // En yeni maçlar en üstte
               .snapshots(),
@@ -150,11 +150,14 @@ class _MyMatchesScreenState extends State<MyMatchesScreen> {
       {required bool isPastMatch}) {
     final matchData = matchDoc.data() as Map<String, dynamic>;
     final matchId = matchDoc.id;
+    final currentUser = FirebaseAuth.instance.currentUser!;
 
-    final String myTeamName = matchData['homeTeamId'] == userTeamId
+    // Kullanıcının hangi takımda olduğunu belirle
+    final bool isHomeTeam = matchData['homeCaptainId'] == currentUser.uid;
+    final String myTeamName = isHomeTeam
         ? matchData['homeTeamName']
         : matchData['awayTeamName'];
-    final String opponentTeamName = matchData['homeTeamId'] == userTeamId
+    final String opponentTeamName = isHomeTeam
         ? matchData['awayTeamName']
         : matchData['homeTeamName'];
 

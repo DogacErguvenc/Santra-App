@@ -141,13 +141,15 @@ service cloud.firestore {
 
       match /challenges/{challengeId} {
         allow read: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
-                     || resource.data.requesterId == request.auth.uid;
-        allow create: if isCaptainOfTeam(request.resource.data.challengerTeamId)
+                     || resource.data.challengerCaptainId == request.auth.uid;
+        allow create: if signedIn()
+                      && request.resource.data.challengerCaptainId == request.auth.uid
+                      && isCaptainOfTeam(request.resource.data.challengerTeamId)
                       && get(/databases/$(database)/documents/posts/$(postId)).data.captainId != request.auth.uid;
         allow update: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
-                      || resource.data.requesterId == request.auth.uid;
+                      || resource.data.challengerCaptainId == request.auth.uid;
         allow delete: if get(/databases/$(database)/documents/posts/$(postId)).data.captainId == request.auth.uid
-                      || resource.data.requesterId == request.auth.uid;
+                      || resource.data.challengerCaptainId == request.auth.uid;
       }
     }
 
@@ -165,7 +167,14 @@ service cloud.firestore {
     // ------------ MATCHES ------------
     match /matches/{matchId} {
       allow read: if signedIn();
-      allow write: if false; // only via Functions
+      allow create: if signedIn() 
+        && request.resource.data.keys().hasAll(['homeTeamId', 'homeTeamName', 'homeCaptainId', 'awayTeamId', 'awayTeamName', 'awayCaptainId', 'matchTimestamp', 'pitchName', 'district', 'createdAt', 'status', 'postId', 'participantUids'])
+        && request.resource.data.participantUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'Ayarlandı';
+      allow update: if signedIn() 
+        && resource.data.participantUids.hasAny([request.auth.uid])
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['homeScore', 'awayScore', 'status', 'scoreEnteredAt', 'scoreEnteredBy', 'disputedScore', 'disputedBy', 'confirmedAt', 'confirmedBy']);
+      allow delete: if false; // only via Functions
     }
 
     // ------------ TEAM INVITES (Global Collection) ------------
