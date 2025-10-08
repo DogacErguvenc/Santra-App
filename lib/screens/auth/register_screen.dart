@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:halisaharakip_app/screens/auth/email_verification_screen.dart';
@@ -104,15 +103,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final fullName =
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim();
 
-      // Cloud Function kullanarak kullanıcı oluştur
-      final functions = FirebaseFunctions.instance;
-      await functions.httpsCallable('createUser').call({
-        'fullName': fullName,
-        'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'deviceId': deviceId,
-      });
+      // Kullanıcı bilgilerini doğrudan Firestore'a kaydet
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'displayName': fullName,
+          'email': _emailController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'isBanned': false,
+          'motmAwards': 0,
+          'fullName': fullName,
+          'fullName_lowercase': fullName.toLowerCase(),
+          'isSearchable': true,
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'role': 'Oyuncu',
+          'teamId': null,
+          'deviceId': deviceId,
+        });
+      }
 
       // E-posta doğrulama sürecini başlat
       await EmailVerificationService.startEmailVerificationProcess();
