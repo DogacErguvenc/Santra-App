@@ -7,6 +7,7 @@ import 'package:halisaharakip_app/screens/auth/email_verification_screen.dart';
 import 'package:halisaharakip_app/screens/main_layout.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
 import 'package:halisaharakip_app/services/email_verification_service.dart';
+import 'package:halisaharakip_app/widgets/loading_widget.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -34,7 +35,11 @@ class _AuthGateState extends State<AuthGate> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: LoadingWidget(
+              message: "Giriş durumu kontrol ediliyor...",
+              subtitle: "Lütfen bekleyin",
+            ),
+          );
         }
 
         if (snapshot.hasData) {

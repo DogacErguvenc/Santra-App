@@ -9,6 +9,8 @@ import 'package:halisaharakip_app/screens/home/team_screen.dart';
 import 'package:halisaharakip_app/screens/matches/my_matches_screen.dart';
 import 'package:halisaharakip_app/screens/notifications/notifications_screen.dart';
 import 'package:halisaharakip_app/screens/profile/my_posts_screen.dart';
+import 'package:halisaharakip_app/services/connectivity_service.dart';
+import 'package:halisaharakip_app/widgets/loading_widget.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -21,11 +23,21 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+  bool _isOnline = true;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    
+    // Bağlantı durumunu dinle
+    ConnectivityService().connectionStream.listen((isConnected) {
+      if (mounted) {
+        setState(() {
+          _isOnline = isConnected;
+        });
+      }
+    });
   }
 
   void _onItemTapped(int index) {
@@ -73,11 +85,21 @@ class _MainLayoutState extends State<MainLayout> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: LoadingWidget(
+              message: "Kullanıcı bilgileri yükleniyor...",
+              subtitle: "Lütfen bekleyin",
+            ),
+          );
         }
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const Scaffold(
-              body: Center(child: Text("Kullanıcı verisi bulunamadı.")));
+          return Scaffold(
+            body: CustomErrorWidget(
+              message: "Kullanıcı verisi bulunamadı. Lütfen tekrar giriş yapın.",
+              onRetry: () {
+                FirebaseAuth.instance.signOut();
+              },
+            ),
+          );
         }
 
         final userData = snapshot.data!;
@@ -119,6 +141,8 @@ class _MainLayoutState extends State<MainLayout> {
         return Scaffold(
           appBar: AppBar(
             title: Text(appBarTitles[_selectedIndex]),
+            // Offline durumda uyarı göster
+            backgroundColor: _isOnline ? Colors.grey[900] : Colors.orange[900],
             actions: [
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -179,7 +203,18 @@ class _MainLayoutState extends State<MainLayout> {
                   tooltip: 'Çıkış Yap'),
             ],
           ),
-          body: screens.elementAt(_selectedIndex),
+          body: _isOnline 
+            ? screens.elementAt(_selectedIndex)
+            : OfflineWidget(
+                onRetry: () async {
+                  final isConnected = await ConnectivityService().checkConnection();
+                  if (isConnected && mounted) {
+                    setState(() {
+                      _isOnline = true;
+                    });
+                  }
+                },
+              ),
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             items: const <BottomNavigationBarItem>[

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:halisaharakip_app/screens/home/post_detail_screen.dart';
 import 'package:halisaharakip_app/screens/home/team_profile_screen.dart';
+import 'package:halisaharakip_app/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 
 class PostsListView extends StatefulWidget {
@@ -215,11 +216,18 @@ class _PostsListViewState extends State<PostsListView> {
             stream: postsQuery.snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingWidget(
+                  message: "Maç ilanları yükleniyor...",
+                  subtitle: "Lütfen bekleyin",
+                );
               }
               if (snapshot.hasError) {
-                return const Center(
-                    child: Text('İlanlar getirilirken bir sorun oluştu.'));
+                return CustomErrorWidget(
+                  message: "İlanlar getirilirken bir sorun oluştu. Lütfen tekrar deneyin.",
+                  onRetry: () {
+                    setState(() {});
+                  },
+                );
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(

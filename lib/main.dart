@@ -8,6 +8,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'auth_gate.dart';
 import 'firebase_options.dart';
 import 'package:halisaharakip_app/services/notification_service.dart';
+import 'package:halisaharakip_app/services/connectivity_service.dart';
 import 'package:halisaharakip_app/screens/profile/player_profile_screen.dart';
 
 void main() async {
@@ -19,6 +20,9 @@ void main() async {
     initializeDateFormatting('tr_TR', null),
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
   ]);
+
+  // Bağlantı kontrol servisini başlat
+  await ConnectivityService().initialize();
 
   // --- APP CHECK KODU GÜNCELLENDİ ---
   // Uygulamanın modunu (debug/release) otomatik olarak kontrol et
