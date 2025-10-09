@@ -128,8 +128,8 @@ service cloud.firestore {
     match /teams/{teamId} {
       allow read: if signedIn();
       allow create: if signedIn();
-      allow update: if isCaptainOfTeam(resource.data.teamId) || isAdmin();
-      allow delete: if isCaptainOfTeam(resource.data.teamId) || isAdmin();
+      allow update: if isCaptainOfTeam(teamId) || isAdmin();
+      allow delete: if isCaptainOfTeam(teamId) || isAdmin();
     }
 
     // ------------ POSTS (Team Match Posts) ------------
