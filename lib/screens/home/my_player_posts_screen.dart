@@ -316,9 +316,12 @@ class _MyPlayerPostsScreenState extends State<MyPlayerPostsScreen> {
 
     if (contactInfo['socialMedia'] != null &&
         contactInfo['socialMedia'].toString().isNotEmpty) {
+      final platform = contactInfo['socialMediaPlatform'];
+      final label = platform != null && platform.toString().isNotEmpty
+          ? 'Sosyal Medya ($platform)'
+          : 'Sosyal Medya';
       contactWidgets.add(
-        _buildContactRow(
-            Icons.alternate_email, 'Sosyal Medya', contactInfo['socialMedia']),
+        _buildContactRow(Icons.alternate_email, label, contactInfo['socialMedia']),
       );
     }
 

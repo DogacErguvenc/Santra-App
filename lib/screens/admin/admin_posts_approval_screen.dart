@@ -133,6 +133,7 @@ class _AdminPostsApprovalScreenState extends State<AdminPostsApprovalScreen> {
     final _phoneController = TextEditingController(text: postData['contactInfo']?['phone'] ?? '');
     final _socialMediaController = TextEditingController(text: postData['contactInfo']?['socialMedia'] ?? '');
     final _otherContactController = TextEditingController(text: postData['contactInfo']?['other'] ?? '');
+    String _selectedSocialPlatform = postData['contactInfo']?['socialMediaPlatform'] ?? 'Instagram';
     
     String _selectedGameLevel = postData['gameLevel'] ?? 'Orta';
     String _selectedDistrict = postData['district'] ?? 'Kadıköy';
@@ -209,12 +210,33 @@ class _AdminPostsApprovalScreenState extends State<AdminPostsApprovalScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _socialMediaController,
-                  decoration: const InputDecoration(
-                    labelText: 'Sosyal Medya',
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _socialMediaController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sosyal Medya',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 150,
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedSocialPlatform,
+                        decoration: const InputDecoration(
+                          labelText: 'Platform',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          'Instagram', 'Twitter/X', 'Facebook', 'TikTok', 'LinkedIn', 'Diğer'
+                        ].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                        onChanged: (v) => setDialogState(() => _selectedSocialPlatform = v ?? 'Instagram'),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -249,6 +271,7 @@ class _AdminPostsApprovalScreenState extends State<AdminPostsApprovalScreen> {
                     'contactInfo': {
                       'phone': _phoneController.text.trim(),
                       'socialMedia': _socialMediaController.text.trim(),
+                      'socialMediaPlatform': _selectedSocialPlatform,
                       'other': _otherContactController.text.trim(),
                     },
                     'editedBy': FirebaseAuth.instance.currentUser?.uid,

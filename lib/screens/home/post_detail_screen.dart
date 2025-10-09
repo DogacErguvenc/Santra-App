@@ -348,6 +348,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (contactInfo == null) return const SizedBox.shrink();
     final String phone = contactInfo['phone'] ?? '';
     final String socialMedia = contactInfo['socialMedia'] ?? '';
+    final String socialPlatform = contactInfo['socialMediaPlatform'] ?? '';
     final String other = contactInfo['other'] ?? '';
 
     if (phone.isEmpty && socialMedia.isEmpty && other.isEmpty) {
@@ -368,7 +369,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (socialMedia.isNotEmpty)
         ListTile(
             leading: const Icon(Icons.alternate_email),
-            title: const Text('Sosyal Medya'),
+            title: Text(socialPlatform.isNotEmpty ? 'Sosyal Medya ($socialPlatform)' : 'Sosyal Medya'),
             subtitle: SelectableText(socialMedia)),
       if (other.isNotEmpty)
         ListTile(

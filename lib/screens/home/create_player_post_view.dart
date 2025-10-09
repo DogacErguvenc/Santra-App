@@ -12,7 +12,6 @@ class CreatePlayerPostView extends StatefulWidget {
 }
 
 class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
-  final _positionController = TextEditingController();
   final _experienceController = TextEditingController();
   final _notesController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -21,8 +20,9 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
 
   bool _isLoading = false;
   String _selectedGameLevel = 'Orta';
-  String _selectedDistrict = 'Kadıköy';
-  String _selectedPosition = 'Orta Saha';
+  List<String> _selectedDistricts = [];
+  List<String> _selectedPositions = [];
+  String _selectedSocialPlatform = 'Instagram';
   bool _contactConsent = false;
 
   final List<String> _districts = [
@@ -68,23 +68,22 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
   ];
 
   final List<String> _positions = [
-    'Kaleci',
-    'Defans',
-    'Orta Saha',
-    'Forvet',
-    'Kanat',
-    'Libero',
-    'Stoper',
-    'Bek',
-    'Ofansif Orta Saha',
-    'Defansif Orta Saha',
-    'Santrafor',
-    'İkinci Forvet'
+    'Kaleci (KL)',
+    'Stoper (STP)',
+    'Sol Bek (SLB)',
+    'Sağ Bek (SĞB)',
+    'Defansif Orta Saha (MDO)',
+    'Merkezi Orta Saha (MO)',
+    'Sol Orta Saha (SLO)',
+    'Sağ Orta Saha (SĞO)',
+    'Ofansif Orta Saha (MOO)',
+    'Sol Kanat (SLK)',
+    'Sağ Kanat (SĞK)',
+    'Santrafor (SNT)'
   ];
 
   @override
   void dispose() {
-    _positionController.dispose();
     _experienceController.dispose();
     _notesController.dispose();
     _phoneController.dispose();
@@ -111,10 +110,16 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
       return;
     }
 
-    if (_positionController.text.trim().isEmpty ||
-        _experienceController.text.trim().isEmpty) {
+    if (_selectedPositions.isEmpty) {
       showSnackBar(context,
-          'Lütfen pozisyon ve deneyim bilgilerini eksiksiz girin.',
+          'Lütfen en az bir tercih edilen pozisyon seçin.',
+          isError: true);
+      return;
+    }
+
+    if (_experienceController.text.trim().isEmpty) {
+      showSnackBar(context,
+          'Lütfen deneyim bilgilerini eksiksiz girin.',
           isError: true);
       return;
     }
@@ -164,9 +169,11 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
         'playerId': currentUser.uid,
         'playerName': fullName,
         'playerImageURL': profileImageURL,
-        'position': _positionController.text.trim(),
+        'position': _selectedPositions.join(', '),
+        'positions': _selectedPositions,
         'experience': _experienceController.text.trim(),
-        'district': _selectedDistrict,
+        'district': _selectedDistricts.join(', '),
+        'districts': _selectedDistricts,
         'gameLevel': _selectedGameLevel,
         'notes': _notesController.text.trim(),
         'status': 'Aktif',
@@ -174,6 +181,7 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
         'contactInfo': {
           'phone': _phoneController.text.trim(),
           'socialMedia': _socialMediaController.text.trim(),
+          'socialMediaPlatform': _selectedSocialPlatform,
           'other': _otherContactController.text.trim(),
         },
       });
@@ -189,6 +197,188 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _openPositionsSelector() {
+    final tempSelected = List<String>.from(_selectedPositions);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (context, controller) {
+            return StatefulBuilder(
+              builder: (context, setLocalState) {
+                return Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('Tercih Edilen Pozisyon (max 5)',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        controller: controller,
+                        children: _positions.map((p) {
+                          final selected = tempSelected.contains(p);
+                          return CheckboxListTile(
+                            title: Text(p),
+                            value: selected,
+                            onChanged: (val) {
+                              setLocalState(() {
+                                if (val == true) {
+                                  if (tempSelected.length >= 5 && !selected) {
+                                    _showLimitDialog();
+                                    return;
+                                  }
+                                  if (!selected) tempSelected.add(p);
+                                } else {
+                                  tempSelected.remove(p);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setLocalState(() => tempSelected.clear());
+                              },
+                              child: const Text('Temizle'),
+                            ),
+                            const Spacer(),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() => _selectedPositions = List<String>.from(tempSelected));
+                                Navigator.pop(context);
+                              },
+                              child: const Text('Tamam'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openDistrictsSelector() {
+    final tempSelected = List<String>.from(_selectedDistricts);
+    String query = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, controller) {
+            return StatefulBuilder(
+              builder: (context, setLocalState) {
+                final filtered = _districts.where((d) => d.toLowerCase().contains(query.toLowerCase())).toList();
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          hintText: 'İlçe ara',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (v) => setLocalState(() => query = v),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        controller: controller,
+                        children: filtered.map((d) {
+                          final selected = tempSelected.contains(d);
+                          return CheckboxListTile(
+                            title: Text(d),
+                            value: selected,
+                            onChanged: (val) {
+                              setLocalState(() {
+                                if (val == true) {
+                                  if (!selected) tempSelected.add(d);
+                                } else {
+                                  tempSelected.remove(d);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setLocalState(() => tempSelected.clear());
+                              },
+                              child: const Text('Temizle'),
+                            ),
+                            const Spacer(),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() => _selectedDistricts = List<String>.from(tempSelected));
+                                Navigator.pop(context);
+                              },
+                              child: const Text('Tamam'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showLimitDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sınır Aşıldı'),
+        content: const Text('En fazla 5 pozisyon seçebilirsiniz.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tamam'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -219,29 +409,23 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
               ),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _positionController,
-              decoration: const InputDecoration(
-                  labelText: 'Pozisyon',
+            InkWell(
+              onTap: _openPositionsSelector,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Tercih Edilen Pozisyon',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.sports_soccer_outlined)),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                    RegExp(r'[a-zA-Z0-9çÇğĞıİöÖşŞüÜ ]'))
-              ],
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _selectedPosition,
-              decoration: const InputDecoration(
-                  labelText: 'Tercih Edilen Pozisyon', border: OutlineInputBorder()),
-              items: _positions
-                  .map<DropdownMenuItem<String>>((String value) =>
-                      DropdownMenuItem<String>(
-                          value: value, child: Text(value)))
-                  .toList(),
-              onChanged: (String? newValue) =>
-                  setState(() => _selectedPosition = newValue!),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(
+                  _selectedPositions.isEmpty
+                      ? 'Seçiniz'
+                      : _selectedPositions.join(', '),
+                  style: TextStyle(
+                    color: _selectedPositions.isEmpty ? Colors.grey[600] : null,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -257,17 +441,23 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
               ],
             ),
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _selectedDistrict,
-              decoration: const InputDecoration(
-                  labelText: 'İlçe', border: OutlineInputBorder()),
-              items: _districts
-                  .map<DropdownMenuItem<String>>((String value) =>
-                      DropdownMenuItem<String>(
-                          value: value, child: Text(value)))
-                  .toList(),
-              onChanged: (String? newValue) =>
-                  setState(() => _selectedDistrict = newValue!),
+            InkWell(
+              onTap: _openDistrictsSelector,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'İlçe',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(
+                  _selectedDistricts.isEmpty
+                      ? 'Seçiniz'
+                      : _selectedDistricts.join(', '),
+                  style: TextStyle(
+                    color: _selectedDistricts.isEmpty ? Colors.grey[600] : null,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
@@ -311,12 +501,39 @@ class _CreatePlayerPostViewState extends State<CreatePlayerPostView> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 10),
-            TextField(
-              controller: _socialMediaController,
-              decoration: const InputDecoration(
-                  labelText: 'Sosyal Medya (örn: @kullaniciadi)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.alternate_email)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _socialMediaController,
+                    decoration: const InputDecoration(
+                        labelText: 'Sosyal Medya (örn: @kullaniciadi)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.alternate_email)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 150,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedSocialPlatform,
+                    decoration: const InputDecoration(
+                      labelText: 'Platform',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      'Instagram',
+                      'Twitter/X',
+                      'Facebook',
+                      'TikTok',
+                      'LinkedIn',
+                      'Diğer'
+                    ].map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedSocialPlatform = v ?? 'Instagram'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             TextField(
