@@ -1,5 +1,5 @@
 name: halisaharakip_app
-description: "A new Flutter project."
+description: "A Flutter and Firebase application for amateur-football teams, players, and match coordination."
 publish_to: 'none' 
 
 version: 1.0.0+2
