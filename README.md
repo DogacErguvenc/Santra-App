@@ -1,5 +1,7 @@
 # Santra
 
+English · [Türkçe özet](#türkçe-özet)
+
 **A Flutter and Firebase application for amateur-football teams and players.**
 
 Santra brings team profiles, player listings, match challenges, and notifications into one application. This repository presents my work on the mobile interface and its Firebase backend.
@@ -63,6 +65,14 @@ The checked-in Firebase client configuration identifies the original project; it
 ## Project notes
 
 This repository contains application source and backend configuration. It does not establish production readiness or current app-store availability. The existing widget test is a starter example, so it should not be treated as coverage of the application flows. Firebase deployments, Android builds, and device behavior need validation in your own environment.
+
+## Türkçe özet
+
+Santra, amatör futbol takımlarının ve oyuncuların takım profilleri, oyuncu ilanları ve maç teklifleri üzerinden bir araya gelmesini amaçlayan bir Flutter/Firebase uygulamasıdır. Üyelik, e-posta doğrulama, takım davetleri, maç ve skor işlemleri ile bildirim akışlarını içerir.
+
+**Teknolojiler:** Flutter/Dart, Firebase Authentication, Firestore, Cloud Functions, Cloud Messaging ve Storage.
+
+Kod haritası ve kurulum adımları yukarıdadır. Kendi kopyanızı çalıştırırken size ait bir Firebase projesi kullanın; Flutter/Android konfigürasyonuna ek olarak `functions/index.js` içindeki proje kimliğini de değiştirin. Mevcut widget testi başlangıç örneğidir; uygulama akışlarının test kapsamını temsil etmez.
 
 ## About the developer
 
